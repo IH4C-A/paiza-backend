@@ -8,3 +8,9 @@ bp = Blueprint('main', __name__)
 @bp.route('/hello', methods=['GET'])
 def hello():
     return jsonify({"message": "Hello, World!"})
+
+# /route
+@bp.route('/', methods=['GET'])
+def index():
+    print("hello")
+    return jsonify({"message": "Welcome to the Flask API!"})
