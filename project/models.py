@@ -1,9 +1,10 @@
 from datetime import datetime
+from flask_login import UserMixin
 import uuid
 from project import db
 
 # Userテーブル
-class User(db.Model):
+class User(db.Model, UserMixin):
     user_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     username = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -15,11 +16,11 @@ class User(db.Model):
     seibetu = db.Column(db.String(10), nullable=True)  # 性別
     address = db.Column(db.String(255), nullable=True)
     employment_status = db.Column(db.String(50), nullable=True)  # 雇用形態
-    rank_id = db.Column(db.String(36), db.ForeignKey('rank.rank_id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    rank = db.relationship('Rank', backref='users', lazy=True)
+    def get_id(self):
+        return str(self.user_id)
 
 
 
@@ -55,6 +56,16 @@ class School_info(db.Model):
 class Rank(db.Model):
     rank_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     rank_name = db.Column(db.String(50), nullable=False)  # ランク名
+    
+
+# User_rankテーブル
+class User_rank(db.Model):
+    user_rank_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    rank_id = db.Column(db.String(36), db.ForeignKey('rank.rank_id'), nullable=False)
+    
+    user = db.relationship('User', backref='user_ranks', lazy=True)
+    rank = db.relationship('Rank', backref='user_ranks', lazy=True)
 
 # Problemテーブル
 class Problem(db.Model):

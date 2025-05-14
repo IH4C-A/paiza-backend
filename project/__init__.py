@@ -34,16 +34,19 @@ def create_app(config_filename="config.py"):
     app.config['JWT_SECRET_KEY'] = 'moyamoya_house'
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=2)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+    
+    # 画像アップロードの設定
+    app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), 'project/static/prof_image/')
 
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
-    from project.models import Category
+    from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank
 
-    # @login_manager.user_loader
-    # def load_user(user_id):
-    #     return User.query.get(int(user_id))
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
     
-    from project.views import bp as main_bp
-    app.register_blueprint(main_bp)
+    from .views import register_blueprints
+    register_blueprints(app)
     
     return app
