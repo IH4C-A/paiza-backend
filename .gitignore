@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc[cod]
+/project/__pycache__/
+*.pyc[cod]
+/project/.env
+*.env
+/project/views/__pycache__/
+*.pyc[cod]
