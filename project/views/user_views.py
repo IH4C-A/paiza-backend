@@ -1,5 +1,5 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from project.models import User
 from flask_login import login_user
 from project import db
@@ -171,6 +171,29 @@ def login():
             return jsonify({'token':access_token}), 200
         else:
             return jsonify({'error': 'login error'}), 400
+
+# ログインユーザー取得
+@user_bp.route('/login_user', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if not current_user:
+        return jsonify({"error": "User not found."}), 404
+
+    user_data = {
+        'user_id': current_user.user_id,
+        'username': current_user.username,
+        'email': current_user.email,
+        'first_name': current_user.first_name,
+        'last_name': current_user.last_name,
+        'profile_image': current_user.profile_image,
+        'age': current_user.age,
+        'seibetu': current_user.seibetu,
+        'address': current_user.address,
+        'employment_status': current_user.employment_status
+    }
+    return jsonify(user_data), 200
 
 
 # Hello World
