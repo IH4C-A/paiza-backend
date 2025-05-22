@@ -45,6 +45,7 @@ def get_answer(answer_id):
 @answer_bp.route('/answer', methods=['POST'])
 def register_answer():
     data = request.get_json()
+    problem_id = data.get('problem_id')
     answer_text = data.get('answer')
     explanation = data.get('explanation')
 
@@ -53,6 +54,7 @@ def register_answer():
 
     new_answer = Answer(
         answer_text=answer_text,
+        problem_id=problem_id,
         explanation=explanation
     )
 
