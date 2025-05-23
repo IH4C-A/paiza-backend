@@ -10,3 +10,7 @@ import os
 
 comment_bp = Blueprint('commnt', __name__)
 
+# 登録
+# 編集
+# 削除
+# 全取得
