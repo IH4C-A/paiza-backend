@@ -48,33 +48,4 @@ def create_app(config_filename="config.py"):
     
     from .views import register_blueprints
     register_blueprints(app)
-
-    # ==== ここからAPI追加 ====
-
-    @app.route('/api/assign_ranks', methods=['POST'])
-    def assign_ranks():
-        data = request.json
-        user_id = data.get('user_id')
-        rank_ids = data.get('rank_ids', [])
-        if not user_id or not rank_ids:
-            return jsonify({"error": "user_idとrank_idsは必須です"}), 400
-        for rank_id in rank_ids:
-            db.session.add(User_rank(user_id=user_id, rank_id=rank_id))
-        db.session.commit()
-        return jsonify({"message": "ランクを正常に登録しました"}), 200
-
-    @app.route('/api/add_group_members', methods=['POST'])
-    def add_group_members():
-        data = request.json
-        group_id = data.get('group_id')
-        user_ids = data.get('user_ids', [])
-        if not group_id or not user_ids:
-            return jsonify({"error": "group_idとuser_idsは必須です"}), 400
-        for user_id in user_ids:
-            db.session.add(GroupMember(group_id=group_id, user_id=user_id))
-        db.session.commit()
-        return jsonify({"message": "グループメンバーを正常に追加しました"}), 200
-
-    # ==== ここまで追加 ====
-
     return app
