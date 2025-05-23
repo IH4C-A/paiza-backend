@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -40,7 +40,7 @@ def create_app(config_filename="config.py"):
 
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
-    from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank
+    from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank, GroupMember
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -48,5 +48,4 @@ def create_app(config_filename="config.py"):
     
     from .views import register_blueprints
     register_blueprints(app)
-    
     return app
