@@ -47,7 +47,7 @@ def register_plant():
 
 #必須事項check 
     if not  grows_stage or not mood or not last_updated  :
-        return jsonify({"error": "grows_stage, mood, last_updated,  academic_department, and graduation_date are required."}), 400
+        return jsonify({"error": "grows_stage, mood and last_updated are required."}), 400
     
     new_plant = Plant(
     grows_stage = grows_stage ,
@@ -67,7 +67,7 @@ def register_plant():
     }),201
     
     
-# School削除
+# Plant削除
 @Plant_bp.route('/plants/<plant_id>', methods=['DELETE'])
 def delete_plant(plant_id):
     plant = Plant.query.get(plant_id)
