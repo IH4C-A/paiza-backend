@@ -1,17 +1,11 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from project.models import Answer
-from flask_login import login_user
 from project import db
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-import os
 
 answer_bp = Blueprint('answer', __name__)
 
 # Answer一覧取得
-@answer_bp.route('/answer', methods=['GET'])
+@answer_bp.route('/answers', methods=['GET'])
 def get_users():
     answers = Answer.query.all()
     answer_list = []
@@ -53,8 +47,8 @@ def register_answer():
         return jsonify({"error": "answer_text, explanation are required."}), 400
 
     new_answer = Answer(
-        answer_text=answer_text,
         problem_id=problem_id,
+        answer_text=answer_text,
         explanation=explanation
     )
 
@@ -63,7 +57,7 @@ def register_answer():
 
     return jsonify({
         'answer_id': new_answer.answer_id,
-        'problem': new_answer.problem_id,
+        'problem_id': new_answer.problem_id,
         'answer_text': new_answer.answer_text,
         'explanation': new_answer.explanation}), 201
     
