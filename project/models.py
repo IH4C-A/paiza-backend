@@ -3,7 +3,7 @@ from flask_login import UserMixin
 import uuid
 from project import db
 
-# Userテーブル
+# Userテーブル✅
 class User(db.Model, UserMixin):
     user_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     username = db.Column(db.String(255), unique=True, nullable=False)
@@ -29,7 +29,7 @@ class Category(db.Model):
     category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     category_name = db.Column(db.String(255), unique=True, nullable=False)
 
-# User_categoryテーブル
+# User_categoryテーブル✅
 class User_category(db.Model):
     user_category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
@@ -38,7 +38,7 @@ class User_category(db.Model):
     user = db.relationship('User', backref='user_categories', lazy=True)
     category = db.relationship('Category', backref='user_categories', lazy=True)
 
-# School_infoテーブル
+# School_infoテーブル✅
 class School_info(db.Model):
     school_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
@@ -58,7 +58,7 @@ class Rank(db.Model):
     rank_name = db.Column(db.String(50), nullable=False)  # ランク名
     
 
-# User_rankテーブル
+# User_rankテーブル✅
 class User_rank(db.Model):
     user_rank_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
@@ -67,7 +67,7 @@ class User_rank(db.Model):
     user = db.relationship('User', backref='user_ranks', lazy=True)
     rank = db.relationship('Rank', backref='user_ranks', lazy=True)
 
-# Problemテーブル
+# Problemテーブル✅
 class Problem(db.Model):
     problem_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     problem_text = db.Column(db.Text, nullable=False)
@@ -76,7 +76,7 @@ class Problem(db.Model):
     category = db.relationship('Category', backref='problems', lazy=True)
 
 
-# Answerテーブル
+# Answerテーブル✅
 class Answer(db.Model):
     answer_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     problem_id = db.Column(db.String(36), db.ForeignKey('problem.problem_id'), nullable=False)
@@ -85,7 +85,7 @@ class Answer(db.Model):
     
     problem = db.relationship('Problem', backref='answers', lazy=True)
 
-# Mentorshipテーブル
+# Mentorshipテーブル✅
 class Mentorship(db.Model):
     mentorship_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     mentor_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
@@ -96,7 +96,7 @@ class Mentorship(db.Model):
     mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentorships_as_mentor', lazy=True)
     mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentorships_as_mentee', lazy=True)
 
-# Plantテーブル
+# Plantテーブル✅
 class Plant(db.Model):
     plant_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
@@ -106,7 +106,7 @@ class Plant(db.Model):
     
     user = db.relationship('User', backref='plants', lazy=True)
 
-# GroupChatテーブル
+# GroupChatテーブル✅
 class GroupChat(db.Model):
     __tablename__ = 'group_chat'
     group_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
@@ -116,13 +116,13 @@ class GroupChat(db.Model):
     create_by = db.Column(db.String(36), db.ForeignKey('user.user_id'))
 
 
-# GroupMemberテーブル
+# GroupMemberテーブル✅
 class GroupMember(db.Model):
     group_member_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     group_id = db.Column(db.String(36), db.ForeignKey('group_chat.group_id'), nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
 
-# chatsテーブル
+# chatsテーブル✅
 class Chats(db.Model):
     chat_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     message = db.Column(db.String(255), nullable=True)
@@ -160,3 +160,75 @@ class Comment(db.Model):
     
     board = db.relationship('Board', backref='comments', lazy=True)
     user = db.relationship('User', backref='comments', lazy=True)
+
+# coursesテーブル✅
+class Courses(db.Model):
+    course_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    course_name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category_id = db.Column(db.String(36), db.ForeignKey('category.category_id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    category = db.relationship('Category', backref='courses', lazy=True)
+
+# Course_progressテーブル✅
+class CourseProgress(db.Model):
+    progress_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id'), nullable=False)
+    progress_percentage = db.Column(db.Integer, nullable=False)  # 進捗率
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref='course_progress', lazy=True)
+    course = db.relationship('Courses', backref='course_progress', lazy=True)
+
+# study_logsテーブル✅
+class StudyLogs(db.Model):
+    log_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id'), nullable=False)
+    study_time = db.Column(db.Integer, nullable=False)  # 学習時間（分）
+    study_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='study_logs', lazy=True)
+    course = db.relationship('Courses', backref='study_logs', lazy=True)
+
+# Notificationテーブル✅
+class Notification(db.Model):
+    notification_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)  # 未読フラグ
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='notifications', lazy=True)
+
+# Articleテーブル✅
+class Article(db.Model):
+    article_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref='articles', lazy=True)
+
+# ArticleCategoryテーブル✅
+class ArticleCategory(db.Model):
+    article_category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    article_id = db.Column(db.String(36), db.ForeignKey('article.article_id'), nullable=False)
+    category_id = db.Column(db.String(36), db.ForeignKey('category.category_id'), nullable=False)
+    
+    article = db.relationship('Article', backref='article_categories', lazy=True)
+    category = db.relationship('Category', backref='article_categories', lazy=True)
+
+# ArticleLikesテーブル
+class ArticleLikes(db.Model):
+    like_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    article_id = db.Column(db.String(36), db.ForeignKey('article.article_id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    
+    article = db.relationship('Article', backref='likes', lazy=True)
+    user = db.relationship('User', backref='liked_articles', lazy=True)  # ユーザーがいいねした記事

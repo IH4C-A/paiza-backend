@@ -1,6 +1,7 @@
 #Schoolinfoテーブルapi追加:5/20近藤
 
 from flask import request, jsonify, Blueprint
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from project.models import School_info
 from project import db
 School_info_bp = Blueprint('School_info', __name__)
@@ -42,17 +43,18 @@ def get_school(school_id):
     return jsonify(school_data),200
 
 #schoolの登録
-@School_info_bp.route('/school',methods=['GET'])
+@School_info_bp.route('/school',methods=['POST'])
+@jwt_required()
 def register_school():
     data = request.get_json()
     school_type = data.get("school_type") 
     school_name = data.get("school_name") 
     study_line = data.get("study_line")
     academic_department = data.get("academic_department")
-    graduation_date = data.get("graduation_date")
+    current_user = get_jwt_identity()
 
 #必須事項check :学校種別,学校名,studyline,学部,卒業日
-    if not  school_type or not school_name or not study_line or not academic_department or not graduation_date :
+    if not  school_type or not school_name or not study_line or not academic_department:
         return jsonify({"error": "school_type, school_name, study_line,  academic_department, and graduation_date are required."}), 400
     
     new_school = School_info(
@@ -60,7 +62,7 @@ def register_school():
     school_name = school_name ,
     study_line = study_line ,
     academic_department = academic_department ,
-    graduation_date = graduation_date
+    user_id = current_user
     )
     
     db.session.add(new_school)
@@ -72,8 +74,7 @@ def register_school():
     'school_type':new_school.school_type,
     'school_name':new_school.school_name,
     'study_line':new_school.study_line,
-    'academic_department':new_school.academic_department,
-    'graduation_date':new_school.graduation_date
+    'academic_department':new_school.academic_department
     }),201
     
     

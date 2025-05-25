@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import User
+from project.models import User, User_rank
 from flask_login import login_user
 from project import db
 from werkzeug.utils import secure_filename
@@ -104,6 +104,14 @@ def register_user():
     )
 
     db.session.add(new_user)
+    db.session.commit()
+    
+    # User_rankの登録
+    new_user_rank = User_rank(
+        user_id=new_user.user_id,
+        rank_id=1  # デフォルトのランクIDを1とする
+    )
+    db.session.add(new_user_rank)
     db.session.commit()
 
     return jsonify({
