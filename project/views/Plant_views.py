@@ -1,6 +1,7 @@
 #Plantテーブル追加:5/23近藤
 
 from flask import request, jsonify, Blueprint
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from project.models import Plant
 from project import db
 Plant_bp = Blueprint('Plant', __name__)
@@ -38,12 +39,15 @@ def get_plant(plant_id):
     return jsonify(plant_data),200
 
 #plantの登録
-@Plant_bp.route('/plant',methods=['GET'])
+@Plant_bp.route('/plant',methods=['POST'])
+@jwt_required()
 def register_plant():
     data = request.get_json()
     grows_stage = data.get("grows_stage") 
     mood = data.get("mood") 
     last_updated = data.get("last_updated")
+    
+    current_user = get_jwt_identity()
 
 #必須事項check 
     if not  grows_stage or not mood or not last_updated  :
@@ -51,6 +55,7 @@ def register_plant():
     
     new_plant = Plant(
     grows_stage = grows_stage ,
+    user_id = current_user,
     mood = mood ,
     last_updated = last_updated ,
     )
