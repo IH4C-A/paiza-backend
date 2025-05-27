@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -40,7 +40,7 @@ def create_app(config_filename="config.py"):
 
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
-    from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank
+    from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank, GroupMember
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -48,5 +48,23 @@ def create_app(config_filename="config.py"):
     
     from .views import register_blueprints
     register_blueprints(app)
-    
+
+    # ==== ここからAPI追加 ====
+
+    @app.route('/api/ranks', methods=['POST'])
+    def create_rank():
+        data = request.json
+        name = data.get('name')
+        if not name:
+            return jsonify({"error": "nameは必須です"}), 400
+        new_rank = Rank(rank_name=name)
+        db.session.add(new_rank)
+        db.session.commit()
+        return jsonify({"message": "ランクを作成しました"}), 201
+
+
+
+
+    # ==== ここまで追加 ====
+
     return app
