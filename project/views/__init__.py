@@ -16,7 +16,7 @@ from .notification_views import notification_bp
 from .article_views import article_bp
 from .articlecategory_views import articlecategory_bp
 from .articlelikes_views import articlelikes_bp
-
+from .category_views import category_bp
 
 def register_blueprints(app):
     app.register_blueprint(user_bp)
@@ -37,4 +37,5 @@ def register_blueprints(app):
     app.register_blueprint(article_bp)
     app.register_blueprint(articlecategory_bp)
     app.register_blueprint(articlelikes_bp)
+    app.register_blueprint(category_bp)
 
