@@ -24,6 +24,7 @@ def get_user_categories():
     for user_category in user_categories:
         category = Category.query.get(user_category.category_id)
         user_category_data = {
+            'user_category_id': user_category.user_category_id,
             'user_id': user_category.user_id,
             'category_id': user_category.category_id,
             'category_name': category.category_name if category else None

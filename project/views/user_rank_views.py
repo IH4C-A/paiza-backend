@@ -24,10 +24,11 @@ def get_user_ranks():
     for user_rank in user_ranks:
         rank = Rank.query.get(user_rank.rank_id)
         user_rank_data = {
+            'user_rank_id': user_rank.user_rank_id,
             'user_id': user_rank.user_id,
             'rank_id': user_rank.rank_id,
-            'rank_name': rank.rank_name if rank else None,
-            'rank_level': rank.rank_level if rank else None
+            'rank_code': user_rank.rank_code,
+            'rank_name': rank.rank_name if rank else None
         }
         user_rank_list.append(user_rank_data)
     
@@ -44,6 +45,7 @@ def register_user_rank():
     user_id = get_jwt_identity()
     
     rank_id = data.get("rank_id")
+    rank_code = data.get("rank_code")
     
     if not rank_id:
         return jsonify({"error": "rank_id is required."}), 400
@@ -53,11 +55,12 @@ def register_user_rank():
     if not existing_user_rank:
         new_user_rank = User_rank(
             user_id=user_id,
-            rank_id=rank_id
+            rank_id=rank_id,
+            rank_code=rank_code,
         )
         db.session.add(new_user_rank)
         db.session.commit()
-        return jsonify({"message": "User rank registered successfully."}), 201
+        return jsonify(new_user_rank), 201
     else:
         return jsonify({"error": "User rank already exists."}), 400
     
@@ -82,4 +85,4 @@ def update_user_rank(rank_id):
     user_rank.rank_id = new_rank_id
     db.session.commit()
     
-    return jsonify({"message": "User rank updated successfully!"}), 200
+    return jsonify(new_rank_id), 200
