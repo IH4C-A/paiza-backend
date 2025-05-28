@@ -18,9 +18,9 @@ def get_problems():
     problem_list = []
     for problem in problems:
         problem_data = {
-            'anser_id': problem.problem_id,
-            'problem_id': problem.problem_text,
-            'answer_text': problem.category_id,
+            'problem_id': problem.problem_id,
+            'problem_text': problem.problem_text,
+            'category_id': problem.category_id,
         }
         problem_list.append(problem_data)
     return jsonify(problem_list), 200

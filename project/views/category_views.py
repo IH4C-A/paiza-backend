@@ -17,7 +17,9 @@ def get_categorys():
     category_list = []
     for category in categorys:
         category_data = {
-            'category_name': category.category_name
+            'category_id': category.category_id,
+            'category_name': category.category_name,
+            'category_code': category.category_code
         }
         category_list.append(category_data)
     return jsonify(category_list), 200
@@ -31,7 +33,9 @@ def get_category(category_id):
         return jsonify({"error": "category not found."}), 404
 
     category_data = {
-        'category_name': category.category_name
+        'category_id': category.category_id,
+        'category_name': category.category_name,
+        'category_code': category.category_code
     }
     return jsonify(category_data), 200
 
@@ -61,14 +65,14 @@ def delete_category(category_id):
 
     return jsonify({"message": "category deleted successfully!"})
 
+# category作成
+@category_bp.route('/categorys', methods=['POST'])
+def create_category():
+    data = request.get_json()
+    category_name = data.get('category_name')
+    category_code = data.get('category_code')
+    new_category = Category(category_name=category_name, category_code=category_code)
+    db.session.add(new_category)
+    db.session.commit()
 
-# Hello World
-@category_bp.route('/hello', methods=['GET'])
-def hello():
-    return jsonify({"message": "Hello, World!"})
-
-# /route
-@category_bp.route('/', methods=['GET'])
-def index():
-    print("hello")
-    return jsonify({"message": "Welcome to the Flask API!"})
+    return jsonify({"message": "category created successfully!"}), 201

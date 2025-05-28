@@ -66,7 +66,7 @@ def register_plant():
     return jsonify ({
     'plant_id': new_plant.plant_id ,
     'user_id' :new_plant.user_id ,
-    'grows_stage':new_plant.grows_stage,
+    'growth_stage':new_plant.growth_stage,
     'mood':new_plant.mood,
     'last_updated':new_plant.last_updated,
     }),201

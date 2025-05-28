@@ -71,7 +71,7 @@ def get_mentorship(mentorship_id):
         'mentee_id': mentorship.mentee_id,
         'mentor_id': mentorship.mentor_id,
         'created_at': mentorship.created_at.isoformat(),
-        'updated_at': mentorship.updated_at.isoformat()
+        'ended_at': mentorship.ended_at.isoformat()
     }
     
     return jsonify(mentorship_data), 200
