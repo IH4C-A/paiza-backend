@@ -21,6 +21,7 @@ def get_problems():
             'problem_id': problem.problem_id,
             'problem_text': problem.problem_text,
             'category_id': problem.category_id,
+            'rank_id': problem.rank_id,
         }
         problem_list.append(problem_data)
     return jsonify(problem_list), 200
@@ -35,7 +36,8 @@ def get_problem(problem_id):
     answer_data = {
             'problem_id': problem.problem_id,
             'problem_text': problem.problem_text,
-            'category_id': problem.category_id
+            'category_id': problem.category_id,
+            'rank_id': problem.rank_id,
         }
     return jsonify(answer_data), 200
 
@@ -45,13 +47,15 @@ def register_problem():
     data = request.get_json()
     problem_text = data.get('problem_text')
     category_id = data.get('category_id')
+    rank_id = data.get('rank_id')
 
     if not problem_text or not category_id :
         return jsonify({"error": "problem_text, category_id are required."}), 400
 
     new_problem = Problem(
         problem_text=problem_text,
-        category_id=category_id
+        category_id=category_id,
+        rank_id=rank_id
     )
 
     db.session.add(new_problem)
@@ -60,4 +64,5 @@ def register_problem():
     return jsonify({
         'problem_id': new_problem.problem_id,
         'problem_text': new_problem.problem_text,
-        'category_id': new_problem.category_id}), 201
+        'category_id': new_problem.category_id,
+        'rank_id': new_problem.rank_id}), 201
