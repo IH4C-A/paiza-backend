@@ -28,6 +28,7 @@ class User(db.Model, UserMixin):
 class Category(db.Model):
     category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     category_name = db.Column(db.String(255), unique=True, nullable=False)
+    category_code = db.Column(db.String(255), unique=True, nullable=False)  
 
 # User_categoryテーブル✅
 class User_category(db.Model):
@@ -63,6 +64,7 @@ class User_rank(db.Model):
     user_rank_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
     rank_id = db.Column(db.String(36), db.ForeignKey('rank.rank_id'), nullable=False)
+    rank_code = db.Column(db.String(255), nullable=False)
     
     user = db.relationship('User', backref='user_ranks', lazy=True)
     rank = db.relationship('Rank', backref='user_ranks', lazy=True)
