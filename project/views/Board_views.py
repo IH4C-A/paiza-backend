@@ -51,8 +51,6 @@ def register_board():
     title = data.get("title") 
     content = data.get("content") 
     status = data.get("status")
-    created_at = data.get("created_at")
-    updated_at = data.get("updated_at")
     
     current_user = get_jwt_identity()
 
@@ -65,8 +63,6 @@ def register_board():
     user_id = current_user,
     content = content ,
     status = status ,
-    created_at = created_at ,
-    updated_at = updated_at
     
     )
     

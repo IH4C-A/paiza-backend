@@ -66,3 +66,42 @@ def register_problem():
         'problem_text': new_problem.problem_text,
         'category_id': new_problem.category_id,
         'rank_id': new_problem.rank_id}), 201
+
+
+# category_idに紐づくproblem一覧取得
+@problem_bp.route('/problems/category/<string:category_id>', methods=['GET'])
+def get_problems_by_category(category_id):
+    problems = Problem.query.filter_by(category_id=category_id).all()
+    if not problems:
+        return jsonify({"error": "No problems found for this category."}), 404
+
+    problem_list = []
+    for problem in problems:
+        problem_data = {
+            'problem_id': problem.problem_id,
+            'problem_text': problem.problem_text,
+            'category_id': problem.category_id,
+            'rank_id': problem.rank_id,
+        }
+        problem_list.append(problem_data)
+    
+    return jsonify(problem_list), 200
+
+# rank_idに紐づくproblem一覧取得
+@problem_bp.route('/problems/rank/<string:rank_id>', methods=['GET'])
+def get_problems_by_rank(rank_id):
+    problems = Problem.query.filter_by(rank_id=rank_id).all()
+    if not problems:
+        return jsonify({"error": "No problems found for this rank."}), 404
+
+    problem_list = []
+    for problem in problems:
+        problem_data = {
+            'problem_id': problem.problem_id,
+            'problem_text': problem.problem_text,
+            'category_id': problem.category_id,
+            'rank_id': problem.rank_id,
+        }
+        problem_list.append(problem_data)
+    
+    return jsonify(problem_list), 200

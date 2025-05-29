@@ -44,7 +44,6 @@ def register_study_log():
     data = request.get_json()
     course_id = data.get("course_id")
     study_time = data.get("study_time")
-    study_date = data.get("study_date", datetime.utcnow().isoformat())
     
     user_id = get_jwt_identity()
     
@@ -53,7 +52,7 @@ def register_study_log():
         user_id=user_id,
         course_id=course_id,
         study_time=study_time,
-        study_date=datetime.fromisoformat(study_date)
+        study_date=datetime.utcnow().isoformat()
     )
     
     db.session.add(new_log)
@@ -62,7 +61,7 @@ def register_study_log():
     return jsonify(new_log), 201
 
 # 学習ログ詳細取得
-@studylogs_bp.route('/studylogs/<string:log_id>', methods=['GET'])
+@studylogs_bp.route('/studylogs/<string:course_id>', methods=['GET'])
 @jwt_required()
 def get_study_log(log_id):
     """
@@ -96,7 +95,7 @@ def update_study_log(log_id):
     data = request.get_json()
     log.course_id = data.get('course_id', log.course_id)
     log.study_time = data.get('study_time', log.study_time)
-    log.study_date = datetime.fromisoformat(data.get('study_date', log.study_date.isoformat()))
+    log.study_date = datetime.utcnow()
     
     db.session.commit()
     

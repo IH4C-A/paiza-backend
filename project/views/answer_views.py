@@ -20,12 +20,13 @@ def get_users():
     return jsonify(answer_list), 200
 
 # answer詳細取得
-@answer_bp.route('/answer/<answer_id>', methods=['GET'])
-def get_answer(answer_id):
-    answer = Answer.query.get(answer_id)
+@answer_bp.route('/answer/<string:problem_id>', methods=['GET'])
+def get_answer(problem_id):
+    answer = Answer.query.get(problem_id = problem_id)
+    # problem_idでAnswerを取得
+    # もしAnswerが見つからなければ404エラーを返す
     if not answer:
         return jsonify({"error": "answer not found."}), 404
-
     answer_data = {
             'anser_id': answer.answer_id,
             'problem_id': answer.problem_id,

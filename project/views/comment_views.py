@@ -9,7 +9,7 @@ comment_bp = Blueprint('commnt', __name__)
 
 
 # Comment一覧取得
-@comment_bp.route('/comments', methods=['GET'])
+@comment_bp.route('/comments/<string:board_id>', methods=['GET'])
 def get_comments():
     comments = Comment.query.all()
     comment_list = []
@@ -27,13 +27,13 @@ def get_comments():
 
 # comment登録
 @comment_bp.route('/comment', methods=['POST'])
+@jwt_required()
 def register_comment():
     data = request.get_json()
     board_id = data.get('board_id')
-    user_id = data.get('user_id')
     content = data.get('content')
     is_answered = data.get('0')
-    created_at = data.get('created_at')
+    user_id = get_jwt_identity()
 
     if not board_id or not user_id or not content:
         return jsonify({"error": "board_id, user_id, content are required."}), 400
@@ -42,8 +42,8 @@ def register_comment():
         board_id=board_id,
         user_id=user_id,
         content=content,
-        is_answered=is_answered,        
-        created_at=created_at        
+        is_answered=is_answered,
+        created_at=datetime.utcnow()        
     )
 
     db.session.add(new_comment)
