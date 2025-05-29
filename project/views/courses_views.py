@@ -21,8 +21,8 @@ def get_courses():
     for course in courses:
         course_data = {
             'course_id': course.course_id,
-            'title': course.course_name,
-            'description': course.description,
+            'course_name': course.course_name,
+            'course_description': course.description,
             'category_id': course.category_id,
             'created_at': course.created_at.isoformat(),
             'updated_at': course.updated_at.isoformat()
@@ -61,7 +61,7 @@ def get_courses_by_category(category_id):
     for course in courses:
         course_data = {
             'course_id': course.course_id,
-            'course': course.course_name,
+            'course_name': course.course_name,
             'category_id': course.category_id,
             'description': course.description,
             'created_at': course.created_at.isoformat(),
