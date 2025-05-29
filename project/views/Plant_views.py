@@ -23,9 +23,11 @@ def get_plants():
     return jsonify(plant_list),200
 
 #schoolの詳細取得
-@Plant_bp.route('/plants/<plant_id>',methods=['GET'])
-def get_plant(plant_id):
-    plant = Plant.query.get(plant_id)
+@Plant_bp.route('/plant',methods=['GET'])
+@jwt_required()
+def get_plant():
+    current_user = get_jwt_identity()
+    plant = Plant.query.get(user_id=current_user)
     if not plant:
         return jsonify({"error": " Plant not found."}), 404
     
@@ -83,3 +85,32 @@ def delete_plant(plant_id):
     db.session.commit()
 
     return jsonify({"message": "Plant deleted successfully!"})
+
+# Plant更新
+@Plant_bp.route('/plants', methods=['PUT'])
+@jwt_required()
+def update_plant():
+    current_user = get_jwt_identity()
+    data = request.get_json()
+    plant = Plant.query.get(user_id=current_user)
+    
+    if not plant:
+        return jsonify({"error": "Plant not found."}), 404
+
+    # 更新可能なフィールドをチェック
+    if 'grows_stage' in data:
+        plant.grows_stage = data['grows_stage']
+    if 'mood' in data:
+        plant.mood = data['mood']
+    if 'last_updated' in data:
+        plant.last_updated = data['last_updated']
+
+    db.session.commit()
+
+    return jsonify({
+        'plant_id': plant.plant_id,
+        'user_id': plant.user_id,
+        'growth_stage': plant.grows_stage,
+        'mood': plant.mood,
+        'last_updated': plant.last_updated
+    }), 200

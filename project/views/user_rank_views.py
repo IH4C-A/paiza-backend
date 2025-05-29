@@ -81,6 +81,7 @@ def update_user_rank(rank_id):
     data = request.get_json()
     new_rank_id = data.get('rank_id', user_rank.rank_id)
     
+    
     # ランクIDの更新
     user_rank.rank_id = new_rank_id
     db.session.commit()

@@ -26,7 +26,7 @@ def get_mentorships():
             'mentorship_id': mentorship.mentorship_id,
             'mentor_id': mentorship.mentor_id,
             'mentee_id': mentorship.mentee_id,
-            'created_at': mentorship.created_at.isoformat()
+            'started_at': mentorship.started_at.isoformat()
         }
         mentorship_list.append(mentorship_data)
     
@@ -47,7 +47,7 @@ def register_mentorship():
     new_mentorship = Mentorship(
         mentee_id=user_id,
         mentor_id=mentor_user,
-        created_at=datetime.utcnow()
+        started_at=datetime.utcnow()
     )
     
     db.session.add(new_mentorship)
@@ -70,7 +70,7 @@ def get_mentorship(mentorship_id):
         'mentorship_id': mentorship.mentorship_id,
         'mentee_id': mentorship.mentee_id,
         'mentor_id': mentorship.mentor_id,
-        'created_at': mentorship.created_at.isoformat(),
+        'started_at': mentorship.started_at.isoformat(),
         'ended_at': mentorship.ended_at.isoformat()
     }
     
