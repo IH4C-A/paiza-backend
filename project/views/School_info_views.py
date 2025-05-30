@@ -25,9 +25,11 @@ def get_schools():
     return jsonify(school_list),200
 
 #schoolの詳細取得
-@School_info_bp.route('/schools/<school_id>',methods=['GET'])
-def get_school(school_id):
-    school = School_info.query.get(school_id)
+@School_info_bp.route('/school',methods=['GET'])
+@jwt_required()
+def get_school():
+    current_user = get_jwt_identity()
+    school = School_info.query.get(user_id=current_user)
     if not school:
         return jsonify({"error": "School_info not found."}), 404
     

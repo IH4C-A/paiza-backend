@@ -24,8 +24,6 @@ def get_article_categories():
         category_data = {
             'category_id': category.category_id,
             'category_name': category.category_name,
-            'created_at': category.created_at.isoformat(),
-            'updated_at': category.updated_at.isoformat()
         }
         category_list.append(category_data)
     return jsonify(category_list), 200
