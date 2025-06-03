@@ -12,13 +12,11 @@ article_bp = Blueprint('article', __name__)
 
 # 記事一覧取得
 @article_bp.route('/articles', methods=['GET'])
-@jwt_required()
 def get_articles():
     """
-    ユーザーの投稿した記事一覧を取得するエンドポイント
+    ユーザーの投稿した記事一覧とカテゴリを取得するエンドポイント
     """
-    user_id = get_jwt_identity()
-    articles = Article.query.filter_by(user_id=user_id).all()
+    articles = Article.query.filter_by().all()
     
     article_list = []
     for article in articles:
@@ -28,7 +26,14 @@ def get_articles():
             'title': article.title,
             'content': article.content,
             'created_at': article.created_at.isoformat(),
-            'updated_at': article.updated_at.isoformat()
+            'updated_at': article.updated_at.isoformat(),
+            'categories': [
+                {
+                    'category_id': category.category_id,
+                    'category_name': category.category_name
+                }
+                for category in article.categories
+            ]
         }
         article_list.append(article_data)
     
