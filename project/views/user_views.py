@@ -167,13 +167,13 @@ def delete_user(user_id):
 @user_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get('email')
+    email = data.get('email')
     password = data.get('password')
 
-    if not username or not password:
+    if not email or not password:
         return jsonify({"error": "Username and password are required."}), 400
 
-    user = User.query.filter_by(email=username).first()
+    user = User.query.filter_by(email=email).first()
     if user :
         if check_password_hash(user.password,password):
             login_user(user)
