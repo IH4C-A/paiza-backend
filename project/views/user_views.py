@@ -79,7 +79,7 @@ def register_user():
     address = data.get('address')
     employment_status = data.get('employment_status')
 
-    if not username or not password or not email:
+    if  not password or not email:
         return jsonify({"error": "Username, password, and email are required."}), 400
     # 画像がアップロードされていない場合のデフォルト設定
     if profile_image:
@@ -167,13 +167,13 @@ def delete_user(user_id):
 @user_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get('username')
+    username = data.get('email')
     password = data.get('password')
 
     if not username or not password:
         return jsonify({"error": "Username and password are required."}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(email=username).first()
     if user :
         if check_password_hash(user.password,password):
             login_user(user)
