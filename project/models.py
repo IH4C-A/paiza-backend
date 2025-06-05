@@ -114,6 +114,7 @@ class GroupChat(db.Model):
     __tablename__ = 'group_chat'
     group_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     group_name = db.Column(db.String(255),nullable=False)
+    group_description = db.Column(db.Text, nullable=True)
     group_image = db.Column(db.String(255), nullable=True)
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
     create_by = db.Column(db.String(36), db.ForeignKey('user.user_id'))
@@ -134,7 +135,8 @@ class Chats(db.Model):
     receiver_user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=True)
     group_id = db.Column(db.String(36), db.ForeignKey('group_chat.group_id'), nullable=True)
     chat_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    is_read = db.Column(db.Boolean, default=False)
+
     # relation
     sender = db.relationship('User', foreign_keys=[send_user_id])
     receiver = db.relationship('User', foreign_keys=[receiver_user_id])
