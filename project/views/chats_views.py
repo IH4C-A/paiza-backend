@@ -11,19 +11,22 @@ import os
 chats_bp = Blueprint('chats', __name__)
 
 
+from flask_jwt_extended import decode_token
+
 @socket.on('connect')
 def handle_connect():
     try:
         token = request.args.get('token')
         if token:
-            decoded_token = decoded_token(token)
-            user_identity = decoded_token['sub']
+            decoded = decode_token(token)
+            user_identity = decoded['sub']
         else:
             raise Exception("Token not provided")
     
     except Exception as e:
         print(f"Error decoding token: {str(e)}")
         disconnect()
+
 
 
 @socket.on('send_message')
@@ -77,7 +80,7 @@ def handle_send_message(data):
     emit('receive_message', {
         'message': new_message.message,
         'image': new_message.image,
-        'sender': new_message.sender.user_name if new_message.sender else 'Unknown',
+        'sender': new_message.sender.user_id if new_message.sender else 'Unknown',
         'group': new_message.group.group_name if new_message.group else None,  # リレーションを使用
         'chat_at': new_message.chat_at.strftime('%Y-%m-%d %H:%M:%S')
     }, broadcast=True)
@@ -110,8 +113,8 @@ def get_chat_history():
     return jsonify([{
         'message': chat.message,
         'image': chat.image,
-        'sender': chat.sender.user_name if chat.sender else 'Unknown',
-        'receiver': chat.receiver.user_name if chat.receiver else 'Unknown',
+        'sender': chat.sender.first_name if chat.sender else 'Unknown',
+        'receiver': chat.receiver.first_name if chat.receiver else 'Unknown',
         'chat_at': chat.chat_at.strftime('%Y-%m-%d %H:%M:%S')
     } for chat in chat_history]), 200
 
@@ -143,20 +146,64 @@ def chat_send_group():
     else:
         return jsonify({"error": "group_id is required"}), 400
 
-# チャットしたことのあるユーザーを取得、チャット履歴順にソート
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql import func
+
 @chats_bp.route('/chat_users', methods=['GET'])
 @jwt_required()
 def get_chat_users():
     current_user_id = get_jwt_identity()
-    
-    # チャット履歴を取得
-    chat_users = db.session.query(Chats.receiver_user_id, User).join(User, Chats.receiver_user_id == User.user_id).filter(
-        Chats.send_user_id == current_user_id
-    ).order_by(Chats.chat_at.desc()).distinct().all()
-    
-    # チャットユーザーをJSON形式で返す
-    return jsonify([{
-        'user_id': user.receiver_user_id,
-        'user_name': user.user_name,
-        'profile_image': user.prof_image
-    } for user in chat_users]), 200
+
+    # 各相手ごとの最新チャット
+    latest_chats_subq = (
+        db.session.query(
+            Chats.receiver_user_id,
+            func.max(Chats.chat_at).label("latest_chat_at")
+        )
+        .filter(Chats.send_user_id == current_user_id)
+        .group_by(Chats.receiver_user_id)
+        .subquery()
+    )
+
+    # 自分宛の未読メッセージ件数を相手（送信者）ごとに取得
+    unread_counts_subq = (
+        db.session.query(
+            Chats.send_user_id.label("user_id"),
+            func.count().label("unread_count")
+        )
+        .filter(
+            Chats.receiver_user_id == current_user_id,
+            Chats.is_read == False
+        )
+        .group_by(Chats.send_user_id)
+        .subquery()
+    )
+
+    ChatsAlias = aliased(Chats)
+
+    results = (
+        db.session.query(ChatsAlias, User, unread_counts_subq.c.unread_count)
+        .join(
+            latest_chats_subq,
+            (ChatsAlias.receiver_user_id == latest_chats_subq.c.receiver_user_id) &
+            (ChatsAlias.chat_at == latest_chats_subq.c.latest_chat_at)
+        )
+        .join(User, ChatsAlias.receiver_user_id == User.user_id)
+        .outerjoin(unread_counts_subq, unread_counts_subq.c.user_id == User.user_id)
+        .order_by(ChatsAlias.chat_at.desc())
+        .all()
+    )
+
+    return jsonify([
+        {
+            "user_id": chat.receiver_user_id,
+            "user_name": user.first_name,  # ← 正しい属性名に
+            "profile_image": user.profile_image,
+            "last_message": chat.message,
+            "last_chat_at": chat.chat_at.strftime('%Y-%m-%d %H:%M:%S') if chat.chat_at else None,
+            "unread_count": unread_count or 0
+        }
+        for chat, user, unread_count in results
+    ]), 200
+
+
