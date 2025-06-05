@@ -11,12 +11,21 @@ import os
 
 user_bp = Blueprint('user', __name__)
 
-# User一覧取得
 @user_bp.route('/users', methods=['GET'])
 def get_users():
     users = User.query.all()
     user_list = []
     for user in users:
+    # ランク情報の取得
+        user_ranks = []
+        for ur in user.user_ranks:
+            user_ranks.append({
+                'user_rank_id': ur.user_rank_id,
+                'rank_id': ur.rank_id,
+                'rank_name': ur.rank.rank_name,
+                'rank_code': ur.rank_code
+            })
+
         user_data = {
             'user_id': user.user_id,
             'username': user.username,
@@ -27,17 +36,28 @@ def get_users():
             'age': user.age,
             'seibetu': user.seibetu,
             'address': user.address,
-            'employment_status': user.employment_status
+            'employment_status': user.employment_status,
+            'ranks': user_ranks
         }
         user_list.append(user_data)
     return jsonify(user_list), 200
 
-# User詳細取得
+
 @user_bp.route('/users/<user_id>', methods=['GET'])
 def get_user(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
+
+    # ランク情報の取得
+    user_ranks = []
+    for ur in user.user_ranks:
+        user_ranks.append({
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        })
 
     user_data = {
         'user_id': user.user_id,
@@ -49,9 +69,11 @@ def get_user(user_id):
         'age': user.age,
         'seibetu': user.seibetu,
         'address': user.address,
-        'employment_status': user.employment_status
+        'employment_status': user.employment_status,
+        'ranks': user_ranks
     }
     return jsonify(user_data), 200
+
 # 画像取得
 @user_bp.route('/prof_image/<filename>', methods=['GET'])
 def get_profile_image(filename):
@@ -182,7 +204,6 @@ def login():
         else:
             return jsonify({'error': 'login error'}), 400
 
-# ログインユーザー取得
 @user_bp.route('/login_user', methods=['GET'])
 @jwt_required()
 def get_current_user():
@@ -190,6 +211,16 @@ def get_current_user():
     current_user = User.query.get(current_user_id)
     if not current_user:
         return jsonify({"error": "User not found."}), 404
+
+    # ランク情報の取得
+    user_ranks = []
+    for ur in current_user.user_ranks:
+        user_ranks.append({
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        })
 
     user_data = {
         'user_id': current_user.user_id,
@@ -201,9 +232,12 @@ def get_current_user():
         'age': current_user.age,
         'seibetu': current_user.seibetu,
         'address': current_user.address,
-        'employment_status': current_user.employment_status
+        'employment_status': current_user.employment_status,
+        'ranks': user_ranks
     }
     return jsonify(user_data), 200
+
+
 
 
 # Hello World
