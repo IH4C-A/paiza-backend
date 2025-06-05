@@ -137,8 +137,8 @@ def chat_send_group():
                 'timestamp': chat.chat_at.strftime('%Y-%m-%d %H:%M:%S'),
                 'send_user_id': chat.send_user_id,
                 'group_id': chat.group_id,  # グループIDを含める
-                'sender_name': user.user_name,  # 送信者の名前
-                'profile_image': user.prof_image  # 送信者のプロフィール画像
+                'sender_name': user.first_name,  # 送信者の名前
+                'profile_image': user.profile_image  # 送信者のプロフィール画像
             })
         
         return jsonify(result), 200

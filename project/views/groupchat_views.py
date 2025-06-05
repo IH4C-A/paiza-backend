@@ -33,12 +33,11 @@ def get_groupchat_image(filename):
 @groupchat_bp.route('/groupchat/members/<string:group_id>', methods=['GET'])
 @jwt_required()
 def get_group_members(group_id):
-    group = GroupChat.query.get(group_id)
+    group = GroupChat.query.filter_by(group_id=group_id)
     if not group:
         return jsonify({'error': 'グループが見つかりません'}), 404
     
     members = db.session.query(User).join(GroupMember).filter(GroupMember.group_id == group_id).all()
-    
     member_list = []
     for member in members:
         # ランク情報取得（複数想定。1つのみなら最初の要素を使えばOK）
@@ -52,9 +51,9 @@ def get_group_members(group_id):
 
         member_data = {
             'id': member.user_id,
-            'name': member.username,
+            'name': member.first_name,
             'prof_image': member.profile_image,
-            'rank': ranks  # ← 追加
+            'rank': ranks,
         }
         member_list.append(member_data)
     
@@ -69,8 +68,8 @@ def create_groupchat():
     data = request.get_json()
     group_name = data.get('group_name')
     group_image = data.get('group_image')
-    group_description = data.get('group_description')
-    user_ids = request.json.get('user_ids[]')
+    group_description = data.get('description')
+    user_ids = data.get('user_ids',[])
     
     current_user = get_jwt_identity()
 
@@ -99,7 +98,7 @@ def create_groupchat():
         db.session.add(new_member)
         db.session.commit()
 
-    return jsonify({"message": "Group chat created successfully."}), 201
+    return jsonify(new_groupchat), 201
 
 # 自分が所属しているグループチャット一覧取得
 @groupchat_bp.route('/my_groupchats', methods=['GET'])
@@ -159,7 +158,7 @@ def get_chat_groups():
             'created_at': group.create_at.strftime('%Y-%m-%dT%H:%M:%S'),
             'created_by': group.create_by,
             'description': group.group_description,
-            'category': category_data,
+            # 'category': category_data,
             'last_message': latest_chat.message if latest_chat else None,
             'unread_count': unread_count,
             'member_count': member_count  # ← 追加！
