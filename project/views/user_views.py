@@ -28,6 +28,7 @@ def get_users():
 
         user_data = {
             'user_id': user.user_id,
+            'password': user.password,
             'username': user.username,
             'email': user.email,
             'first_name': user.first_name,
