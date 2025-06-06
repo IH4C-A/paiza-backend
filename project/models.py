@@ -28,7 +28,7 @@ class User(db.Model, UserMixin):
 class Category(db.Model):
     category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     category_name = db.Column(db.String(255), unique=True, nullable=False)
-    category_code = db.Column(db.String(255), unique=True, nullable=False)  
+    category_code = db.Column(db.String(255), nullable=False)  
 
 # User_categoryテーブル✅
 class User_category(db.Model):
