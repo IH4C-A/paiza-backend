@@ -28,7 +28,7 @@ class User(db.Model, UserMixin):
 class Category(db.Model):
     category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     category_name = db.Column(db.String(255), unique=True, nullable=False)
-    category_code = db.Column(db.String(255), unique=True, nullable=False)  
+    category_code = db.Column(db.String(255), nullable=False)  
 
 # User_categoryテーブル✅
 class User_category(db.Model):
@@ -98,6 +98,18 @@ class Mentorship(db.Model):
     
     mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentorships_as_mentor', lazy=True)
     mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentorships_as_mentee', lazy=True)
+
+
+class MentorshipRequest(db.Model):
+    request_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    mentee_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    mentor_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending / approved / rejected
+    message = db.Column(db.Text, nullable=True)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mentee = db.relationship('User', foreign_keys=[mentee_id])
+    mentor = db.relationship('User', foreign_keys=[mentor_id])
 
 # Plantテーブル✅
 class Plant(db.Model):
@@ -209,6 +221,11 @@ class Notification(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
     message = db.Column(db.String(255), nullable=False)
     is_read = db.Column(db.Boolean, default=False)  # 未読フラグ
+    type = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    detail = db.Column(db.String(255), nullable=False)
+    priority = db.Column(db.String(255), nullable=False)
+    actionurl = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref='notifications', lazy=True)

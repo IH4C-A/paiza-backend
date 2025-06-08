@@ -27,7 +27,12 @@ def get_notifications():
             'user_id': notification.user_id,
             'message': notification.message,
             'created_at': notification.created_at.isoformat(),
-            'is_read': notification.is_read
+            'is_read': notification.is_read,
+            'type': notification.type,
+            'title': notification.title,
+            'detail': notification.detail,
+            'priority': notification.priority,
+            'actionUrl': notification.actionurl
         }
         notification_list.append(notification_data)
     
