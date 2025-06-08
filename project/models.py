@@ -103,8 +103,12 @@ class Mentorship(db.Model):
 class Plant(db.Model):
     plant_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    plant_name = db.Column(db.String(255), nullable=False)
     growth_stage = db.Column(db.String(255), nullable=False)
     mood = db.Column(db.String(50), nullable=False)  # 植物の種類
+    color = db.Column(db.String(50), nullable=False)
+    size = db.Column(db.Integer, nullable=False)
+    motivation_style = db.Column(db.String(50), nullable=False)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = db.relationship('User', backref='plants', lazy=True)
