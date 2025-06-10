@@ -23,43 +23,54 @@ def get_plants():
     return jsonify(plant_list),200
 
 #schoolの詳細取得
-@Plant_bp.route('/plant',methods=['GET'])
+@Plant_bp.route('/plant', methods=['GET'])
 @jwt_required()
 def get_plant():
     current_user = get_jwt_identity()
-    plant = Plant.query.get(user_id=current_user)
+    plant = Plant.query.filter_by(user_id=current_user).first()  # ← .first() を追加
+
     if not plant:
-        return jsonify({"error": " Plant not found."}), 404
-    
-    plant_data={
-            'plant_id': plant.plant_id ,
-            'user_id' :plant.user_id,
-            'grows_stage':plant.grows_stage,
-            'mood':plant.mood,
-            'last_updated':plant.last_updated,
+        return jsonify({"error": "Plant not found."}), 404
+
+    plant_data = {
+        'plant_id': plant.plant_id,
+        'user_id': plant.user_id,
+        'grows_stage': plant.growth_stage,
+        'mood': plant.mood,
+        'last_updated': plant.last_updated,
+        'plant_name': plant.plant_name,
+        'color': plant.color,
+        'size': plant.size,
+        'motivation_style': plant.motivation_style,
     }
-    return jsonify(plant_data),200
+    return jsonify(plant_data), 200
+
 
 #plantの登録
 @Plant_bp.route('/plant',methods=['POST'])
 @jwt_required()
 def register_plant():
     data = request.get_json()
-    grows_stage = data.get("grows_stage") 
-    mood = data.get("mood") 
-    last_updated = data.get("last_updated")
-    
+    grows_stage = data.get("growth_stage") 
+    mood = data.get("mood")
+    color = data.get("color")
+    plant_name = data.get("plant_name")
+    size = data.get("size")
+    motivation_style = data.get("motivation_style")
     current_user = get_jwt_identity()
 
-#必須事項check 
-    if not  grows_stage or not mood or not last_updated  :
+    #必須事項check 
+    if not  grows_stage or not mood:
         return jsonify({"error": "grows_stage, mood and last_updated are required."}), 400
     
     new_plant = Plant(
-    grows_stage = grows_stage ,
+    growth_stage = grows_stage ,
     user_id = current_user,
     mood = mood ,
-    last_updated = last_updated ,
+    plant_name = plant_name,
+    color = color,
+    size = size,
+    motivation_style = motivation_style,
     )
     
     db.session.add(new_plant)
@@ -70,6 +81,10 @@ def register_plant():
     'user_id' :new_plant.user_id ,
     'growth_stage':new_plant.growth_stage,
     'mood':new_plant.mood,
+    'plant_name':new_plant.plant_name,
+    'color': new_plant.color,
+    'size': new_plant.size,
+    'motivation_style': new_plant.motivation_style,
     'last_updated':new_plant.last_updated,
     }),201
     

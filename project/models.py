@@ -99,12 +99,28 @@ class Mentorship(db.Model):
     mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentorships_as_mentor', lazy=True)
     mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentorships_as_mentee', lazy=True)
 
+
+class MentorshipRequest(db.Model):
+    request_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    mentee_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    mentor_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending / approved / rejected
+    message = db.Column(db.Text, nullable=True)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mentee = db.relationship('User', foreign_keys=[mentee_id])
+    mentor = db.relationship('User', foreign_keys=[mentor_id])
+
 # Plantテーブル✅
 class Plant(db.Model):
     plant_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    plant_name = db.Column(db.String(255), nullable=False)
     growth_stage = db.Column(db.String(255), nullable=False)
     mood = db.Column(db.String(50), nullable=False)  # 植物の種類
+    color = db.Column(db.String(50), nullable=False)
+    size = db.Column(db.Integer, nullable=False)
+    motivation_style = db.Column(db.String(50), nullable=False)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = db.relationship('User', backref='plants', lazy=True)
@@ -205,6 +221,11 @@ class Notification(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
     message = db.Column(db.String(255), nullable=False)
     is_read = db.Column(db.Boolean, default=False)  # 未読フラグ
+    type = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    detail = db.Column(db.String(255), nullable=False)
+    priority = db.Column(db.String(255), nullable=False)
+    actionurl = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref='notifications', lazy=True)
