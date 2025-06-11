@@ -34,7 +34,7 @@ def get_articles():
         user = User.query.get(article.user_id)
         user_data = {
             'user_id': user.user_id,
-            'username': user.username,
+            'username': user.first_name,
             'email': user.email  # 必要に応じて削除/追加
         } if user else {}
 

@@ -18,6 +18,7 @@ from .articlecategory_views import articlecategory_bp
 from .articlelikes_views import articlelikes_bp
 from .category_views import category_bp
 from .rank_views import rank_bp
+from .Board_views import Board_bp
 
 def register_blueprints(app):
     app.register_blueprint(user_bp)
@@ -40,4 +41,6 @@ def register_blueprints(app):
     app.register_blueprint(articlelikes_bp)
     app.register_blueprint(category_bp)
     app.register_blueprint(rank_bp)
+    app.register_blueprint(Board_bp)
+    
 
