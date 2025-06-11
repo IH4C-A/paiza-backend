@@ -51,7 +51,7 @@ def register_user_rank():
         return jsonify({"error": "rank_id is required."}), 400
     
     # 既に登録されているか確認
-    existing_user_rank = User_rank.query.filter_by(user_id=user_id, rank_id=rank_id).first()
+    existing_user_rank = User_rank.query.filter_by(user_id=user_id, rank_id=rank_id, rank_code=rank_code).first()
     if not existing_user_rank:
         new_user_rank = User_rank(
             user_id=user_id,
@@ -60,7 +60,13 @@ def register_user_rank():
         )
         db.session.add(new_user_rank)
         db.session.commit()
-        return jsonify(new_user_rank), 201
+        return jsonify({
+            "id": new_user_rank.user_rank_id,
+            "user_id": new_user_rank.user_id,
+            "rank": new_user_rank.rank,
+            # 必要なフィールドを追加
+        }), 201
+
     else:
         return jsonify({"error": "User rank already exists."}), 400
     

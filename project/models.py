@@ -170,6 +170,16 @@ class Board(db.Model):
     
     user = db.relationship('User', backref='boards', lazy=True)
 
+# boardcategoryテーブル
+class Board_Category(db.Model):
+    board_category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    category_id = db.Column(db.String(36), db.ForeignKey('category.category_id'), nullable=False)
+    board_id = db.Column(db.String(36), db.ForeignKey('board.board_id'), nullable=False)
+
+    category = db.relationship('Category', backref='board_categories', lazy=True)
+    board = db.relationship('Board', backref='board_categories', lazy=True)
+
+
 # commentテーブル
 class Comment(db.Model):
     comment_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
