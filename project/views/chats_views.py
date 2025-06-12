@@ -1,12 +1,13 @@
 import base64
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Chats, GroupChat, User
+from project.models import Chats, GroupChat, GroupMember, User
 from flask_socketio import SocketIO, disconnect, emit
 from project import db, socket
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
+from  project.notification import create_notification 
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -59,6 +60,16 @@ def handle_send_message(data):
         
         send_user = User.query.get(new_message.send_user_id)
         
+        if send_user:
+            group_member = GroupMember.query.filter_by(group_id=group.group_id).all()
+            for member in group_member:
+                if member.user_id != new_message.send_user_id:
+                    title = "グループチャットで返信"
+                    type = "group_mention"
+                    priority = "medium"
+                    context = f'{send_user.first_name}がグループ「{group.group_name}」に新しいメッセージを送信しました'
+                    create_notification(member.user_id, title, context,new_message.message,type,priority,actionurl=f'/group/{new_message.group_id}')
+            db.session.commit()
     else:
         # 個人チャットの場合
         new_message = Chats(
@@ -73,7 +84,12 @@ def handle_send_message(data):
         db.session.commit()
     
         send_user = User.query.get(new_message.send_user_id)
-    
+        if send_user:
+            title = "メンターからの返信"
+            context = f'{send_user.first_name}が返信しました。'
+            type = "mentor_reply"
+            create_notification(new_message.receiver_user_id,title,context,new_message.message,type,priority="high",actionurl=f"/chat/{new_message.send_user_id}")
+            db.session.commit()
 
 
     # メッセージ送信をクライアントに通知
