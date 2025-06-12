@@ -30,7 +30,7 @@ def get_comments(board_id):
                 'user_id': comment.user.user_id,
                 'username': comment.user.first_name,
                 'prof_image': comment.user.profile_image,
-                'rank': user_ranks
+                'ranks': user_ranks
             }
         comment_data = {
             'comment_id': comment.comment_id,

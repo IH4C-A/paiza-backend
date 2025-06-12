@@ -44,7 +44,7 @@ def register_user_category():
     user_id = get_jwt_identity()
     
     # カテゴリーIDのリストを取得
-    category_ids = data.get("category_ids[]")
+    category_ids = data.get("categoryids",[])
     
     if not category_ids:
         return jsonify({"error": "category_ids is required."}), 400
