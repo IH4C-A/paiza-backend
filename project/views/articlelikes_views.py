@@ -58,13 +58,15 @@ def register_article_like():
     new_like = ArticleLikes(
         user_id=user_id,
         article_id=article_id,
-        created_at=datetime.utcnow()
     )
     
     db.session.add(new_like)
     db.session.commit()
     
-    return jsonify(new_like), 201
+    return jsonify({
+        "user_id": new_like.user,
+        "article_id": new_like.article
+        }), 201
 
 # 記事のいいねを解除
 @articlelikes_bp.route('/articlelikes/<string:article_id>', methods=['DELETE'])
@@ -93,6 +95,8 @@ def get_article_like_count(article_id):
     """
     特定の記事のいいね数を取得するエンドポイント
     """
+    current_user = get_jwt_identity()
+    like = ArticleLikes.query.filter_by(article_id=article_id, user_id=current_user).first()
     like_count = ArticleLikes.query.filter_by(article_id=article_id).count()
     
-    return jsonify({"article_id": article_id, "like_count": like_count}), 200
+    return jsonify({"article_id": article_id, "like_count": like_count, "like": like.user_id if like else None}), 200

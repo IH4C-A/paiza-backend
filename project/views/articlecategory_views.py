@@ -10,22 +10,29 @@ import os
 
 articlecategory_bp = Blueprint('articlecategory', __name__)
 
-# 記事カテゴリ一覧取得
+# 記事で使用されたカテゴリ一覧を取得
 @articlecategory_bp.route('/articlecategories', methods=['GET'])
-@jwt_required()
-def get_article_categories():
+def get_used_article_categories():
     """
-    記事のカテゴリ一覧を取得するエンドポイント
+    記事に使用されたカテゴリ一覧を取得するエンドポイント
     """
-    categories = ArticleCategory.query.all()
+    # ArticleCategory と Category を結合して、distinctでユニークカテゴリを取得
+    used_categories = (
+        db.session.query(Category)
+        .join(ArticleCategory, Category.category_id == ArticleCategory.category_id)
+        .distinct()
+        .all()
+    )
     
     category_list = []
-    for category in categories:
+    for category in used_categories:
         category_data = {
             'category_id': category.category_id,
             'category_name': category.category_name,
+            'category_code': category.category_code
         }
         category_list.append(category_data)
+    
     return jsonify(category_list), 200
 
 
