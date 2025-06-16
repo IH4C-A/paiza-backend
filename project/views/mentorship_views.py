@@ -7,63 +7,110 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
+from sqlalchemy import select
 
 mentorship_bp = Blueprint('mentorship', __name__)
 
-# 自分のメンターシップ一覧取得
 @mentorship_bp.route('/mentorships', methods=['GET'])
 @jwt_required()
 def get_mentorships():
     """
-    自分のメンターシップ一覧と、
-    自分と同じカテゴリかつ mentor ランクを持つ学生メンター一覧を取得する
+    自分のメンター一覧と、自分と同じカテゴリかつ mentor ランクを持つ他のユーザー一覧を返す
     """
     user_id = get_jwt_identity()
 
-    # 自分のメンターシップ一覧
+    # 🔹 自分のメンターシップ一覧
     mentorships = Mentorship.query.filter_by(mentee_id=user_id).all()
     mentorship_list = []
+    mentor_user_ids = set()
+
     for mentorship in mentorships:
-        mentorship_data = {
+        mentor = User.query.get(mentorship.mentor_id)
+        if not mentor:
+            continue
+
+        mentor_user_ids.add(mentor.user_id)
+
+        mentor_ranks = [{
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        } for ur in mentor.user_ranks]
+
+        mentor_categories = [{
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        } for uc in mentor.user_categories]
+
+        mentorship_list.append({
             'mentorship_id': mentorship.mentorship_id,
-            'mentor_id': mentorship.mentor_id,
-            'mentee_id': mentorship.mentee_id,
-            'started_at': mentorship.started_at.isoformat()
-        }
-        mentorship_list.append(mentorship_data)
+            'started_at': mentorship.started_at.isoformat(),
+            'mentor': {
+                'user_id': mentor.user_id,
+                'first_name': mentor.first_name,
+                'last_name': mentor.last_name,
+                'profile_image': mentor.profile_image,
+                'username': mentor.username,
+                'ranks': mentor_ranks,
+                'categories': mentor_categories
+            }
+        })
 
-    # 自分のカテゴリ一覧（IDのみ抽出）
-    own_category_ids = db.session.query(User_category.category_id).filter_by(user_id=user_id).subquery()
+    # 🔹 自分のカテゴリ一覧（IDのみ）→ 明示的なサブクエリ化
+    own_category_ids_subquery = (
+        db.session.query(User_category.category_id)
+        .filter(User_category.user_id == user_id)
+        .subquery()
+    )
 
-    # 同じカテゴリに属している他のユーザーのうち、mentorランクを持つユーザー
-    mentor_users = (
+    # 🔹 同じカテゴリで mentor ランクを持つ他のユーザー（※既にメンターの人は除外）
+    candidate_mentors = (
         db.session.query(User)
         .join(User_category, User.user_id == User_category.user_id)
         .join(User_rank, User.user_id == User_rank.user_id)
         .filter(
-            User_category.category_id.in_(own_category_ids),
+            User_category.category_id.in_(own_category_ids_subquery),
             User_rank.rank_code == 'mentor',
-            User.user_id != user_id  # 自分自身を除外
+            User.user_id != user_id
         )
         .distinct()
         .all()
     )
 
-    # mentorユーザーの情報整形
-    student_mentors = []
-    for user in mentor_users:
-        student_mentors.append({
+    candidate_mentor_list = []
+    for user in candidate_mentors:
+        user_ranks = [{
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        } for ur in user.user_ranks]
+
+        user_categories = [{
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        } for uc in user.user_categories]
+
+        candidate_mentor_list.append({
             'user_id': user.user_id,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'profile_image': user.profile_image,
             'username': user.username,
+            'ranks': user_ranks,
+            'categories': user_categories
         })
 
     return jsonify({
-        'mentorships': mentorship_list,
-        'student_mentors': student_mentors,
+        'mentorship': mentorship_list,
+        'student_mentors': candidate_mentor_list
     }), 200
+
 
 
 # メンターシップ登録
@@ -180,6 +227,52 @@ def send_mentorship_request():
     db.session.add(new_request)
     db.session.commit()
     return jsonify({"message": "申請を送信しました"}), 201
+
+@mentorship_bp.route('/mentorship/requests/received', methods=['GET'])
+@jwt_required()
+def get_received_mentorship_requests():
+    mentor_id = get_jwt_identity()
+
+    requests = MentorshipRequest.query.filter_by(mentor_id=mentor_id).order_by(MentorshipRequest.requested_at.desc()).all()
+
+    result = []
+    for req in requests:
+        mentee = User.query.get(req.mentee_id)
+            # ランク情報の取得
+        user_ranks = []
+        for ur in mentee.user_ranks:
+            user_ranks.append({
+                'user_rank_id': ur.user_rank_id,
+                'rank_id': ur.rank_id,
+                'rank_name': ur.rank.rank_name,
+                'rank_code': ur.rank_code
+            })
+        
+        user_category = []
+        for uc in mentee.user_categories:
+            user_category.append({
+                'user_category_id': uc.user_category_id,
+                'category_id': uc.category_id,
+                'category_name': uc.category.category_name,
+                'category_code': uc.category.category_code
+            })
+        result.append({
+            "request_id": req.request_id,
+            "status": req.status,
+            "message": req.message,
+            "requested_at": req.requested_at.isoformat(),
+            "mentee": {
+                'user_id': mentee.user_id,
+                'first_name': mentee.first_name,
+                'last_name': mentee.last_name,
+                'profile_image': mentee.profile_image,
+                'username': mentee.username,
+                "ranks": user_ranks,
+                "categories": user_category,
+            }
+        })
+
+    return jsonify(result), 200
 
 # 承認・メンター登録API
 @mentorship_bp.route('/mentorship/request/<request_id>/approve', methods=['POST'])

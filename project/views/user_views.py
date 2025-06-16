@@ -25,6 +25,15 @@ def get_users():
                 'rank_name': ur.rank.rank_name,
                 'rank_code': ur.rank_code
             })
+        
+        user_category = []
+        for uc in user.user_categories:
+            user_category.append({
+                'user_category_id': uc.user_category_id,
+                'category_id': uc.category_id,
+                'category_name': uc.category.category_name,
+                'category_code': uc.category.category_code
+            })
 
         user_data = {
             'user_id': user.user_id,
@@ -38,7 +47,8 @@ def get_users():
             'seibetu': user.seibetu,
             'address': user.address,
             'employment_status': user.employment_status,
-            'ranks': user_ranks
+            'ranks': user_ranks,
+            'categories': user_category
         }
         user_list.append(user_data)
     return jsonify(user_list), 200
@@ -59,6 +69,15 @@ def get_user(user_id):
             'rank_name': ur.rank.rank_name,
             'rank_code': ur.rank_code
         })
+        
+    user_category = []
+    for uc in user.user_categories:
+        user_category.append({
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        })
 
     user_data = {
         'user_id': user.user_id,
@@ -71,7 +90,8 @@ def get_user(user_id):
         'seibetu': user.seibetu,
         'address': user.address,
         'employment_status': user.employment_status,
-        'ranks': user_ranks
+        'ranks': user_ranks,
+        'categories': user_category
     }
     return jsonify(user_data), 200
 
@@ -222,6 +242,15 @@ def get_current_user():
             'rank_name': ur.rank.rank_name,
             'rank_code': ur.rank_code
         })
+        
+    user_category = []
+    for uc in current_user.user_categories:
+        user_category.append({
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        })
 
     user_data = {
         'user_id': current_user.user_id,
@@ -234,7 +263,8 @@ def get_current_user():
         'seibetu': current_user.seibetu,
         'address': current_user.address,
         'employment_status': current_user.employment_status,
-        'ranks': user_ranks
+        'ranks': user_ranks,
+        'categories': user_category
     }
     return jsonify(user_data), 200
 
