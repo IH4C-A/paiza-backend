@@ -53,8 +53,6 @@ def list_feedback():
 
         result.append({
             'feedback_id': f.feedback_id,
-            'mentorship_id': f.mentorship_id,
-            'user_id': f.user_id,
             'rating': f.rating,
             'comment': f.comment,
             'created_at': f.created_at.isoformat(),
@@ -97,8 +95,6 @@ def get_feedback(feedback_id):
 
     return jsonify({
         'feedback_id': feedback.feedback_id,
-        'mentorship_id': feedback.mentorship_id,
-        'user_id': feedback.user_id,
         'rating': feedback.rating,
         'comment': feedback.comment,
         'created_at': feedback.created_at.isoformat(),

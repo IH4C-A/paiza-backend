@@ -279,6 +279,7 @@ class MentorshipSchedule(db.Model):
     status = db.Column(db.Enum('scheduled', 'completed', 'canceled', name='mentorship_status'), default='scheduled', nullable=False)
     topic = db.Column(db.String(255))  # フリーテキストも可能
     description = db.Column(db.Text)
+    meeting_link = db.Column(db.String(255))  # オンラインミーティングのリンクなど
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     cancel_reason = db.Column(db.Text)
