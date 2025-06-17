@@ -296,3 +296,21 @@ def approve_mentorship(request_id):
     db.session.commit()
 
     return jsonify({"message": "申請を承認しました"}), 200
+
+# 拒否API：/mentorship/request/<request_id>/reject
+@mentorship_bp.route('/mentorship/request/<request_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_mentorship_request(request_id):
+    mentor_id = get_jwt_identity()
+    req = MentorshipRequest.query.get(request_id)
+
+    if not req or req.mentor_id != mentor_id:
+        return jsonify({"error": "権限がありません"}), 403
+
+    if req.status != "pending":
+        return jsonify({"error": "すでに処理された申請です"}), 400
+
+    req.status = "rejected"
+    db.session.commit()
+
+    return jsonify({"message": "申請を拒否しました"}), 200

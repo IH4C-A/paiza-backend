@@ -19,6 +19,9 @@ from .articlelikes_views import articlelikes_bp
 from .category_views import category_bp
 from .rank_views import rank_bp
 from .Board_views import Board_bp
+from .mentor_schedule_views import mentor_schedule_bp
+from .mentor_note_views import mentor_note_bp
+from .mentor_feedback_views import mentor_feedback_bp
 
 def register_blueprints(app):
     app.register_blueprint(user_bp)
@@ -42,5 +45,7 @@ def register_blueprints(app):
     app.register_blueprint(category_bp)
     app.register_blueprint(rank_bp)
     app.register_blueprint(Board_bp)
-    
+    app.register_blueprint(mentor_schedule_bp)
+    app.register_blueprint(mentor_note_bp)
+    app.register_blueprint(mentor_feedback_bp)
 
