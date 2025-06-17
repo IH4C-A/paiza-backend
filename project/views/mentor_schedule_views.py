@@ -58,6 +58,7 @@ def list_schedules():
             'created_at': s.created_at.isoformat(),
             'updated_at': s.updated_at.isoformat(),
             'cancel_reason': s.cancel_reason,
+            'meeting_link': s.meeting_link,  # meeting_linkを追加
 
             # メンタリング情報を展開
             'mentorship': {
@@ -110,6 +111,7 @@ def get_schedule(schedule_id):
         'created_at': s.created_at.isoformat(),
         'updated_at': s.updated_at.isoformat(),
         'cancel_reason': s.cancel_reason,
+        'meeting_link': s.meeting_link,  # meeting_linkを追加
 
         'mentorship': {
             'mentorship_id': mentorship.mentorship_id,
