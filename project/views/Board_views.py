@@ -1,8 +1,9 @@
 #boardテーブル追加:5/27近藤
 
+from datetime import datetime
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from project.models import Board, Board_Category
+from project.models import Board, Board_Category, GrowthMilestone, GrowthMilestoneLog, Plant
 from project import db
 Board_bp = Blueprint('Board', __name__)
 
@@ -126,6 +127,24 @@ def register_board():
         board_category = Board_Category(board_id=new_board.board_id, category_id=category_id)
         db.session.add(board_category)
     db.session.commit()
+    
+        # growth_milestones登録
+    plant = Plant.query.filter_by(user_id = current_user).first()
+    growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
+    if plant and growth_milestone:
+        growth_milestone.milestone += 20
+        db.session.commit()
+        if growth_milestone.milestone >= 100:
+            growth_milestone.milestone -= 100
+            plant.plant_level += 1
+            new_log = f"Plant level up! New level: {plant.plant_level}"
+            new_milestone = GrowthMilestoneLog(
+                milestone_id=growth_milestone.milestone_id,
+                log_message=new_log,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_milestone)
+            db.session.commit()
 
     return jsonify ({
     'board_id': new_board.board_id ,

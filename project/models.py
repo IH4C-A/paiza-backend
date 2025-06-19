@@ -125,6 +125,25 @@ class Plant(db.Model):
     
     user = db.relationship('User', backref='plants', lazy=True)
 
+# growth_milestonesテーブル
+class GrowthMilestone(db.Model):
+    milestone_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    plant_id = db.Column(db.String(36), db.ForeignKey('plant.plant_id'), nullable=False)
+    milestone = db.Column(db.Integer, nullable=False)  # 成長段階のマイルストーン
+    level = db.Column(db.Integer, nullable=True)  # レベル
+    achieved_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    plant = db.relationship('Plant', backref='growth_milestones', lazy=True)
+
+# growth_milestone_logsテーブル
+class GrowthMilestoneLog(db.Model):
+    log_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    milestone_id = db.Column(db.String(36), db.ForeignKey('growth_milestone.milestone_id'), nullable=False)
+    log_message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    milestone = db.relationship('GrowthMilestone', backref='logs', lazy=True)
+
 # GroupChatテーブル✅
 class GroupChat(db.Model):
     __tablename__ = 'group_chat'

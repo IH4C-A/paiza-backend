@@ -2,7 +2,7 @@
 
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from project.models import Plant
+from project.models import GrowthMilestone, GrowthMilestoneLog, Plant
 from project import db
 Plant_bp = Blueprint('Plant', __name__)
 
@@ -27,23 +27,46 @@ def get_plants():
 @jwt_required()
 def get_plant():
     current_user = get_jwt_identity()
-    plant = Plant.query.filter_by(user_id=current_user).first()  # ← .first() を追加
-
+    plant = Plant.query.filter_by(user_id=current_user).first()
+    
     if not plant:
-        return jsonify({"error": "Plant not found."}), 404
+        return jsonify({'message': 'Plant not found'}), 404
 
+    # 初期化
+    milestones_data = None
+
+    growth_milestones = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first()
+    if growth_milestones:
+        logs = GrowthMilestoneLog.query.filter_by(milestone_id=growth_milestones.milestone_id).all()
+        logs_data = [
+            {
+                'log_id': log.log_id,
+                'log_message': log.log_message,
+                'created_at': log.created_at
+            }
+            for log in logs
+        ]
+        milestones_data = {
+            'milestone_id': growth_milestones.milestone_id,
+            'milestone': growth_milestones.milestone,
+            'level': growth_milestones.level,
+            'achieved_at': growth_milestones.achieved_at,
+            'logs': logs_data
+        }
     plant_data = {
         'plant_id': plant.plant_id,
         'user_id': plant.user_id,
-        'grows_stage': plant.growth_stage,
+        'growth_stage': plant.growth_stage,
         'mood': plant.mood,
         'last_updated': plant.last_updated,
         'plant_name': plant.plant_name,
         'color': plant.color,
         'size': plant.size,
         'motivation_style': plant.motivation_style,
+        'growth_milestones': milestones_data  # None も許容する
     }
     return jsonify(plant_data), 200
+
 
 
 #plantの登録
@@ -74,6 +97,21 @@ def register_plant():
     )
     
     db.session.add(new_plant)
+    db.session.commit()
+    print("New plant created:", new_plant.plant_id)
+    new_growth_milestone = GrowthMilestone(
+        plant_id = new_plant.plant_id,
+        milestone = 0,
+        level = 1,
+    )
+    db.session.add(new_growth_milestone)
+    db.session.commit()
+    new_log = GrowthMilestoneLog(
+        milestone_id = new_growth_milestone.milestone_id,
+        log_message = "Plant created",
+        created_at = new_plant.last_updated
+    )
+    db.session.add(new_log)
     db.session.commit()
 
     return jsonify ({

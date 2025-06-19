@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Article, ArticleLikes, User, ArticleCategory, Category
+from project.models import Article, ArticleLikes, GrowthMilestone, GrowthMilestoneLog, Plant, User, ArticleCategory, Category
 from flask_login import login_user
 from project import db
 from werkzeug.utils import secure_filename
@@ -99,7 +99,23 @@ def register_article():
         db.session.add(article_category)
     db.session.commit()
     
-    
+    # growth_milestones登録
+    plant = Plant.query.filter_by(user_id = user_id).first()
+    growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
+    if plant and growth_milestone:
+        growth_milestone.milestone += 20
+        db.session.commit()
+        if growth_milestone.milestone >= 100:
+            growth_milestone.milestone -= 100
+            plant.plant_level += 1
+            new_log = f"Plant level up! New level: {plant.plant_level}"
+            new_milestone = GrowthMilestoneLog(
+                milestone_id=growth_milestone.milestone_id,
+                log_message=new_log,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_milestone)
+            db.session.commit()
     return jsonify({
     "article_id": new_article.article_id,
     "user_id": new_article.user_id,
