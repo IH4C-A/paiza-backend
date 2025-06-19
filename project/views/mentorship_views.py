@@ -14,9 +14,6 @@ mentorship_bp = Blueprint('mentorship', __name__)
 @mentorship_bp.route('/mentorships', methods=['GET'])
 @jwt_required()
 def get_mentorships():
-    """
-    自分のメンター一覧と、自分と同じカテゴリかつ mentor ランクを持つ他のユーザー一覧を返す
-    """
     user_id = get_jwt_identity()
 
     # 🔹 自分のメンターシップ一覧
@@ -59,28 +56,43 @@ def get_mentorships():
             }
         })
 
-    # 🔹 自分のカテゴリ一覧（IDのみ）→ 明示的なサブクエリ化
-    own_category_ids_subquery = (
-        db.session.query(User_category.category_id)
-        .filter(User_category.user_id == user_id)
-        .subquery()
-    )
+    # 🔹 自分のカテゴリ一覧（リストとして取得）
+    own_category_ids = db.session.query(User_category.category_id)\
+        .filter(User_category.user_id == user_id).all()
+    own_category_ids = [cat_id for (cat_id,) in own_category_ids]
 
-    # 🔹 同じカテゴリで mentor ランクを持つ他のユーザー（※既にメンターの人は除外）
-    candidate_mentors = (
-        db.session.query(User)
-        .join(User_category, User.user_id == User_category.user_id)
-        .join(User_rank, User.user_id == User_rank.user_id)
-        .filter(
-            User_category.category_id.in_(own_category_ids_subquery),
-            User_rank.rank_code == 'mentor',
-            User.user_id != user_id
+    # 🔹 mentor候補（カテゴリあり／なしで分岐）
+    if own_category_ids:
+        candidate_mentors = (
+            db.session.query(User)
+            .join(User_category, User.user_id == User_category.user_id)
+            .join(User_rank, User.user_id == User_rank.user_id)
+            .filter(
+                User_category.category_id.in_(own_category_ids),
+                User_rank.rank_code == 'mentor',
+                User.user_id != user_id
+            )
+            .distinct()
+            .all()
         )
-        .distinct()
-        .all()
-    )
+    else:
+        candidate_mentors = (
+            db.session.query(User)
+            .join(User_rank, User.user_id == User_rank.user_id)
+            .filter(
+                User_rank.rank_code == 'mentor',
+                User.user_id != user_id
+            )
+            .distinct()
+            .all()
+        )
 
-    candidate_mentor_list = []
+    # ✅ 登録済み mentor を除外
+    candidate_mentors = [
+        user for user in candidate_mentors
+        if user.user_id not in mentor_user_ids
+    ]
+
     for user in candidate_mentors:
         user_ranks = [{
             'user_rank_id': ur.user_rank_id,
@@ -96,7 +108,7 @@ def get_mentorships():
             'category_code': uc.category.category_code
         } for uc in user.user_categories]
 
-        candidate_mentor_list.append({
+        candidate_mentors.append({
             'user_id': user.user_id,
             'first_name': user.first_name,
             'last_name': user.last_name,
@@ -108,8 +120,9 @@ def get_mentorships():
 
     return jsonify({
         'mentorship': mentorship_list,
-        'student_mentors': candidate_mentor_list
+        'student_mentors': candidate_mentors
     }), 200
+
 
 
 

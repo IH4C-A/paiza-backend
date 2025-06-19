@@ -22,9 +22,26 @@ def get_notifications():
     
     notification_list = []
     for notification in notifications:
+        user_info = None
+        if notification.user:
+            
+            user_ranks = []
+            for ur in notification.user.user_ranks:
+                user_ranks.append({
+                    'user_rank_id': ur.user_rank_id,
+                    'rank_id': ur.rank_id,
+                    'rank_name': ur.rank.rank_name,
+                    'rank_code': ur.rank_code
+                })
+            user_info = {
+                'user_id': notification.user.user_id,
+                'username': notification.user.first_name,
+                'prof_image': notification.user.profile_image,
+                'ranks': user_ranks
+            }
         notification_data = {
             'notification_id': notification.notification_id,
-            'user_id': notification.user_id,
+            'user_id': user_info,
             'message': notification.message,
             'created_at': notification.created_at.isoformat(),
             'is_read': notification.is_read,
