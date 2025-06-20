@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Comment
+from project.models import Comment, GrowthMilestone, GrowthMilestoneLog, Plant, User, Board
 from project import db
 from datetime import datetime
 import os
@@ -66,12 +66,35 @@ def register_comment():
     db.session.add(new_comment)
     db.session.commit()
     
+    # boardの取得
+    board = Board.query.get(board_id)
+    # boardを投稿したユーザーの取得
+    user = User.query.get(board.user_id)
     type = "Youtube"
     title = "質問への回答"
     messsage = "あなたの質問に新しい回答が投稿されました"
     priority = "medium"
-    create_notification(user_id,title,messsage,new_comment.content,type,priority,actionurl=f'/questions/{new_comment.board_id}')
+    create_notification(user.user_id,title,messsage,new_comment.content,type,priority,actionurl=f'/question/{new_comment.board_id}')
     db.session.commit()
+    
+    # growth_milestones登録
+    plant = Plant.query.filter_by(user_id = user_id).first()
+    if plant:
+        growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
+    if plant and growth_milestone:
+        growth_milestone.milestone += 20
+        db.session.commit()
+        if growth_milestone.milestone >= 100:
+            growth_milestone.milestone -= 100
+            plant.plant_level += 1
+            new_log = f"Plant level up! New level: {plant.plant_level}"
+            new_milestone = GrowthMilestoneLog(
+                milestone_id=growth_milestone.milestone_id,
+                log_message=new_log,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_milestone)
+            db.session.commit()
 
     return jsonify({
         'comment_id': new_comment.comment_id,

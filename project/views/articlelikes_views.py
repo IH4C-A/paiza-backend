@@ -64,8 +64,8 @@ def register_article_like():
     db.session.commit()
     
     return jsonify({
-        "user_id": new_like.user,
-        "article_id": new_like.article
+        "user_id": new_like.user_id,
+        "article_id": new_like.article_id
         }), 201
 
 # 記事のいいねを解除
@@ -100,3 +100,19 @@ def get_article_like_count(article_id):
     like_count = ArticleLikes.query.filter_by(article_id=article_id).count()
     
     return jsonify({"article_id": article_id, "like_count": like_count, "like": like.user_id if like else None}), 200
+
+# 指定の記事にユーザーがいいねしているかを確認
+@articlelikes_bp.route('/articlelikes/check/<string:article_id>', methods=['GET'])
+@jwt_required()
+def check_article_like(article_id):
+    """
+    ログインユーザーが指定の記事にいいねしているかを判定するエンドポイント
+    """
+    user_id = get_jwt_identity()
+
+    like = ArticleLikes.query.filter_by(user_id=user_id, article_id=article_id).first()
+
+    return jsonify({
+        "article_id": article_id,
+        "liked": like is not None
+    }), 200

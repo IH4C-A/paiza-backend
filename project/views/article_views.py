@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Article, User, ArticleCategory, Category
+from project.models import Article, ArticleLikes, GrowthMilestone, GrowthMilestoneLog, Plant, User, ArticleCategory, Category
 from flask_login import login_user
 from project import db
 from werkzeug.utils import secure_filename
@@ -11,10 +11,12 @@ import os
 article_bp = Blueprint('article', __name__)
 
 @article_bp.route('/articles', methods=['GET'])
+@jwt_required(optional=True)  # 認証していればuser_idを取得、未認証でも取得可能
 def get_articles():
     """
-    ユーザーの投稿した記事一覧とカテゴリ、ユーザー詳細を取得するエンドポイント
+    ユーザーの投稿した記事一覧とカテゴリ、ユーザー詳細、いいね数、ユーザーのいいね情報を取得
     """
+    user_id = get_jwt_identity()
     articles = Article.query.all()
     
     article_list = []
@@ -35,8 +37,16 @@ def get_articles():
         user_data = {
             'user_id': user.user_id,
             'username': user.first_name,
-            'email': user.email  # 必要に応じて削除/追加
+            'email': user.email
         } if user else {}
+
+        # いいね数
+        like_count = ArticleLikes.query.filter_by(article_id=article.article_id).count()
+
+        # ログインユーザーがこの投稿にいいねしているかどうか
+        is_liked_by_user = False
+        if user_id:
+            is_liked_by_user = ArticleLikes.query.filter_by(article_id=article.article_id, user_id=user_id).first() is not None
 
         article_data = {
             'article_id': article.article_id,
@@ -45,7 +55,9 @@ def get_articles():
             'created_at': article.created_at.isoformat(),
             'updated_at': article.updated_at.isoformat(),
             'user': user_data,
-            'categories': categories
+            'categories': categories,
+            'like_count': like_count,
+            'is_liked_by_user': is_liked_by_user  # 👈 ここが重要！
         }
         article_list.append(article_data)
     
@@ -87,7 +99,23 @@ def register_article():
         db.session.add(article_category)
     db.session.commit()
     
-    
+    # growth_milestones登録
+    plant = Plant.query.filter_by(user_id = user_id).first()
+    growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
+    if plant and growth_milestone:
+        growth_milestone.milestone += 20
+        db.session.commit()
+        if growth_milestone.milestone >= 100:
+            growth_milestone.milestone -= 100
+            plant.plant_level += 1
+            new_log = f"Plant level up! New level: {plant.plant_level}"
+            new_milestone = GrowthMilestoneLog(
+                milestone_id=growth_milestone.milestone_id,
+                log_message=new_log,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_milestone)
+            db.session.commit()
     return jsonify({
     "article_id": new_article.article_id,
     "user_id": new_article.user_id,

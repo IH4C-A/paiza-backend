@@ -125,6 +125,25 @@ class Plant(db.Model):
     
     user = db.relationship('User', backref='plants', lazy=True)
 
+# growth_milestonesテーブル
+class GrowthMilestone(db.Model):
+    milestone_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    plant_id = db.Column(db.String(36), db.ForeignKey('plant.plant_id'), nullable=False)
+    milestone = db.Column(db.Integer, nullable=False)  # 成長段階のマイルストーン
+    level = db.Column(db.Integer, nullable=True)  # レベル
+    achieved_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    plant = db.relationship('Plant', backref='growth_milestones', lazy=True)
+
+# growth_milestone_logsテーブル
+class GrowthMilestoneLog(db.Model):
+    log_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    milestone_id = db.Column(db.String(36), db.ForeignKey('growth_milestone.milestone_id'), nullable=False)
+    log_message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    milestone = db.relationship('GrowthMilestone', backref='logs', lazy=True)
+
 # GroupChatテーブル✅
 class GroupChat(db.Model):
     __tablename__ = 'group_chat'
@@ -268,3 +287,45 @@ class ArticleLikes(db.Model):
     
     article = db.relationship('Article', backref='likes', lazy=True)
     user = db.relationship('User', backref='liked_articles', lazy=True)  # ユーザーがいいねした記事
+
+
+class MentorshipSchedule(db.Model):
+    schedule_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
+    mentorship_id = db.Column(db.String(36), db.ForeignKey('mentorship.mentorship_id'), nullable=False)
+    
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.Enum('scheduled', 'completed', 'canceled', name='mentorship_status'), default='scheduled', nullable=False)
+    topic = db.Column(db.String(255))  # フリーテキストも可能
+    description = db.Column(db.Text)
+    meeting_link = db.Column(db.String(255))  # オンラインミーティングのリンクなど
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    cancel_reason = db.Column(db.Text)
+
+    mentorship = db.relationship('Mentorship', backref='schedule', uselist=False)
+
+class MentorshipNote(db.Model):
+    note_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
+    mentorship_id = db.Column(db.String(36), db.ForeignKey('mentorship.mentorship_id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+
+    type = db.Column(db.Enum('preparation', 'summary', name='note_type'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mentorship = db.relationship('Mentorship', backref='notes')
+    user = db.relationship('User', backref='mentorship_notes')
+
+
+class MentorshipFeedback(db.Model):
+    feedback_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
+    mentorship_id = db.Column(db.String(36), db.ForeignKey('mentorship.mentorship_id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+
+    rating = db.Column(db.Integer, nullable=False)  # 1〜5段階
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mentorship = db.relationship('Mentorship', backref='feedbacks')
+    user = db.relationship('User', backref='given_feedbacks')
