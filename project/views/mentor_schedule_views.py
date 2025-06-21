@@ -13,8 +13,8 @@ mentor_schedule_bp = Blueprint('mentor_schedule', __name__)
 def create_schedule():
     data = request.get_json()
 
-    mentorship_id = data.get('mentorship_id')
-    group_id = data.get('group_id')
+    mentorship_id = data.get('mentorship_id') or None
+    group_id = data.get('group_id') or None
 
     # どちらか一方のみ指定
     if bool(mentorship_id) == bool(group_id):
@@ -92,8 +92,8 @@ def list_schedules():
                 }
             }
 
-        elif s.group_chat:
-            group = s.group_chat
+        elif s.group:
+            group = s.group
 
             group_members = (
                 db.session.query(User)
@@ -121,7 +121,7 @@ def list_schedules():
             }
 
 
-            result.append(item)
+        result.append(item)
 
     return jsonify(result)
 
@@ -170,7 +170,7 @@ def get_schedule(schedule_id):
     elif s.group_chat:
         group = s.group_chat
 
-            # ログインユーザーがグループメンバーか確認
+        # ログインユーザーがグループメンバーか確認
         is_member = db.session.query(GroupMember).filter_by(
             group_id=group.group_id,
             user_id=current_user_id
@@ -178,7 +178,7 @@ def get_schedule(schedule_id):
         if not is_member:
             return jsonify({'message': 'Unauthorized'}), 403
 
-            # 🔽 グループメンバー一覧を取得
+        # 🔽 グループメンバー一覧を取得
         group_members = (
             db.session.query(User)
             .join(GroupMember, User.user_id == GroupMember.user_id)
@@ -211,7 +211,10 @@ def get_schedule(schedule_id):
                 'group_image': group.group_image,
                 'members': member_list,  # 🔸 グループメンバー情報を追加
             }
-        }),200
+        })
+
+
+    return jsonify({'message': 'Invalid schedule'}), 400
 
 
 # Update
