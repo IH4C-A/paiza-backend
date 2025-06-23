@@ -27,10 +27,10 @@ def get_user_categories():
             'user_category_id': user_category.user_category_id,
             'user_id': user_category.user_id,
             'category_id': user_category.category_id,
-            'category_name': category.category_name if category else None
+            'category_name': category.category_name if category else None,
+            'category_code': category.category_code if category else None,
         }
         user_category_list.append(user_category_data)
-    
     return jsonify(user_category_list), 200
 
 # Userカテゴリー登録(for文で複数登録可能)

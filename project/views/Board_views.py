@@ -27,7 +27,7 @@ def get_boards():
             user_info = {
                 'user_id': board.user.user_id,
                 'username': board.user.first_name,
-                'rank': user_ranks
+                'ranks': user_ranks
             }
         board_data = {
             'board_id': board.board_id,
