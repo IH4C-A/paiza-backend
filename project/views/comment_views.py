@@ -130,3 +130,49 @@ def delete_comments(comment_id):
     db.session.commit()
 
     return jsonify({"message": "Comment deleted successfully!"})
+
+# ベストアンサー登録
+@comment_bp.route('/comments/best/<comment_id>', methods=['PUT'])
+def register_best_answer(comment_id):
+    comment = Comment.query.get(comment_id)
+    if not comment:
+        return jsonify({"error": "Comment not found."}), 404
+
+    # 既存のベストアンサーを解除
+    existing_best_answer = Comment.query.filter_by(board_id=comment.board_id, is_answered=True).first()
+    if existing_best_answer:
+        existing_best_answer.is_answered = False
+        db.session.commit()
+
+    # 新しいベストアンサーを設定
+    comment.is_answered = True
+    db.session.commit()
+    
+    plant = Plant.query.filter_by(user_id=comment.user_id).first()
+    growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
+    if plant and growth_milestone:
+        growth_milestone.milestone += 20
+        db.session.commit()
+        if growth_milestone.milestone >= 100:
+            growth_milestone.milestone -= 100
+            plant.plant_level += 1
+            new_log = f"Plant level up! New level: {plant.plant_level}"
+            new_milestone = GrowthMilestoneLog(
+                milestone_id=growth_milestone.milestone_id,
+                log_message=new_log,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_milestone)
+            db.session.commit()
+    # ベストアンサー登録の通知
+    
+    # boardを投稿したユーザーの取得
+    user = User.query.get(comment.user_id)
+    type = "Youtube"
+    title = "回答のベストアンサー"
+    messsage = "あなたの回答がベストアンサーに選ばれました"
+    priority = "medium"
+    create_notification(user.user_id,title,messsage,comment.content,type,priority,actionurl=f'/question/{comment.board_id}')
+    db.session.commit()
+
+    return jsonify({"message": "Best answer registered successfully!"}), 200

@@ -63,7 +63,7 @@ def get_mentorships():
 
     # 🔹 mentor候補（カテゴリあり／なしで分岐）
     if own_category_ids:
-        candidate_mentors = (
+        candidate_mentors_query = (
             db.session.query(User)
             .join(User_category, User.user_id == User_category.user_id)
             .join(User_rank, User.user_id == User_rank.user_id)
@@ -76,7 +76,7 @@ def get_mentorships():
             .all()
         )
     else:
-        candidate_mentors = (
+        candidate_mentors_query = (
             db.session.query(User)
             .join(User_rank, User.user_id == User_rank.user_id)
             .filter(
@@ -87,13 +87,12 @@ def get_mentorships():
             .all()
         )
 
-    # ✅ 登録済み mentor を除外
-    candidate_mentors = [
-        user for user in candidate_mentors
-        if user.user_id not in mentor_user_ids
-    ]
+    # ✅ 登録済み mentor を除外 & 整形
+    candidate_mentors = []
+    for user in candidate_mentors_query:
+        if user.user_id in mentor_user_ids:
+            continue
 
-    for user in candidate_mentors:
         user_ranks = [{
             'user_rank_id': ur.user_rank_id,
             'rank_id': ur.rank_id,
@@ -122,7 +121,6 @@ def get_mentorships():
         'mentorship': mentorship_list,
         'student_mentors': candidate_mentors
     }), 200
-
 
 
 
