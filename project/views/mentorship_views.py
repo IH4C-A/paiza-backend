@@ -28,6 +28,10 @@ def get_mentorships():
 
         mentor_user_ids.add(mentor.user_id)
 
+        # メンターが指導しているメンティーの数を取得
+        mentees_count = Mentorship.query.filter_by(mentor_id=mentor.user_id).count()
+
+
         mentor_ranks = [{
             'user_rank_id': ur.user_rank_id,
             'rank_id': ur.rank_id,
@@ -45,6 +49,7 @@ def get_mentorships():
         mentorship_list.append({
             'mentorship_id': mentorship.mentorship_id,
             'started_at': mentorship.started_at.isoformat(),
+            'mentees_count': mentees_count,
             'mentor': {
                 'user_id': mentor.user_id,
                 'first_name': mentor.first_name,
@@ -52,7 +57,7 @@ def get_mentorships():
                 'profile_image': mentor.profile_image,
                 'username': mentor.username,
                 'ranks': mentor_ranks,
-                'categories': mentor_categories
+                'categories': mentor_categories,
             }
         })
 
@@ -92,6 +97,10 @@ def get_mentorships():
     for user in candidate_mentors_query:
         if user.user_id in mentor_user_ids:
             continue
+        
+        # メンターが指導しているメンティーの数を取得
+        mentees_count = Mentorship.query.filter_by(mentor_id=user.user_id).count()
+
 
         user_ranks = [{
             'user_rank_id': ur.user_rank_id,
@@ -114,7 +123,8 @@ def get_mentorships():
             'profile_image': user.profile_image,
             'username': user.username,
             'ranks': user_ranks,
-            'categories': user_categories
+            'categories': user_categories,
+            'mentees_count': mentees_count # ✅ 追加
         })
 
     return jsonify({
@@ -325,3 +335,27 @@ def reject_mentorship_request(request_id):
     db.session.commit()
 
     return jsonify({"message": "申請を拒否しました"}), 200
+
+
+# 全メンター取得
+@mentorship_bp.route('/mentors', methods=['GET'])
+@jwt_required()
+def get_all_mentors():
+    current_user_id = get_jwt_identity()
+
+    mentors = (
+        db.session.query(User)
+        .join(User_rank, User.user_id == User_rank.user_id)
+        .filter(User_rank.rank_code == "mentor", User.user_id != current_user_id)
+        .all()
+    )
+
+    mentor_list = [{
+        "user_id": m.user_id,
+        "first_name": m.first_name,
+        "last_name": m.last_name,
+        "profile_image": m.profile_image,
+        "username": m.username
+    } for m in mentors]
+
+    return jsonify(mentor_list), 200
