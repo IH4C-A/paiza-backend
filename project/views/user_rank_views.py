@@ -63,7 +63,7 @@ def register_user_rank():
         return jsonify({
             "id": new_user_rank.user_rank_id,
             "user_id": new_user_rank.user_id,
-            "rank": new_user_rank.rank,
+            "rank": new_user_rank.rank_code,
             # 必要なフィールドを追加
         }), 201
 

@@ -3,11 +3,12 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from project.models import Mentorship, MentorshipRequest, User, User_category, User_rank
 from flask_login import login_user
 from project import db
+from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 mentorship_bp = Blueprint('mentorship', __name__)
 
@@ -23,6 +24,8 @@ def get_mentorships():
 
     for mentorship in mentorships:
         mentor = User.query.get(mentorship.mentor_id)
+        
+        response = calculate_average_dm_response_time(mentor.user_id)
         if not mentor:
             continue
 
@@ -30,6 +33,10 @@ def get_mentorships():
 
         # メンターが指導しているメンティーの数を取得
         mentees_count = Mentorship.query.filter_by(mentor_id=mentor.user_id).count()
+        
+        # メンターの平均評価を取得
+        
+        average_rating = get_average_mentor_rating(mentor.user_id)
 
 
         mentor_ranks = [{
@@ -58,6 +65,9 @@ def get_mentorships():
                 'username': mentor.username,
                 'ranks': mentor_ranks,
                 'categories': mentor_categories,
+                'mentees_count': mentees_count,
+                'response_time': response,  # 🔹 追加: メンターの平均返信時間
+                'average_rating': average_rating  # 🔹 追加: メンターの平均評価
             }
         })
 
@@ -97,9 +107,11 @@ def get_mentorships():
     for user in candidate_mentors_query:
         if user.user_id in mentor_user_ids:
             continue
-        
+        response = calculate_average_dm_response_time(user.user_id)
         # メンターが指導しているメンティーの数を取得
         mentees_count = Mentorship.query.filter_by(mentor_id=user.user_id).count()
+        
+        average_rating = get_average_mentor_rating(mentor.user_id)
 
 
         user_ranks = [{
@@ -122,10 +134,15 @@ def get_mentorships():
             'last_name': user.last_name,
             'profile_image': user.profile_image,
             'username': user.username,
+            'employment_status': user.employment_status,  # ✅ 追加！
             'ranks': user_ranks,
             'categories': user_categories,
-            'mentees_count': mentees_count # ✅ 追加
+            'mentees_count': mentees_count,
+            'response_time': response,
+            'average_rating': average_rating
         })
+
+    # print(candidate_mentors)
 
     return jsonify({
         'mentorship': mentorship_list,
@@ -350,12 +367,133 @@ def get_all_mentors():
         .all()
     )
 
-    mentor_list = [{
-        "user_id": m.user_id,
-        "first_name": m.first_name,
-        "last_name": m.last_name,
-        "profile_image": m.profile_image,
-        "username": m.username
-    } for m in mentors]
+    mentor_list = []
+    for m in mentors:
+        response = calculate_average_dm_response_time(user_id=m.user_id)
+        mentees_count = Mentorship.query.filter_by(mentor_id=m.user_id).count()
+        average_rating = get_average_mentor_rating(m.user_id)
+
+        user_ranks = [{
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        } for ur in m.user_ranks]
+
+        user_categories = [{
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        } for uc in m.user_categories]
+
+        mentor_list.append({
+            'user_id': m.user_id,
+            'first_name': m.first_name,
+            'last_name': m.last_name,
+            'profile_image': m.profile_image,
+            'username': m.username,
+            'employment_status': m.employment_status,
+            'ranks': user_ranks,
+            'categories': user_categories,
+            'mentees_count': mentees_count,
+            'response_time': response,
+            'average_rating': average_rating
+        })
 
     return jsonify(mentor_list), 200
+
+
+@mentorship_bp.route('/mentorshipuser/<string:user_id>', methods=['GET'])
+@jwt_required()
+def get_user_mentorships(user_id):
+    current_user_id = get_jwt_identity()
+
+    # ログインユーザーと指定されたuser_idが同一の場合、メンターシップ関係は存在しない
+    if current_user_id == user_id:
+        return jsonify({"message": "Cannot retrieve mentorships with self."}), 400
+
+    # 🔹 ログインユーザーが user_id をメンターとしているか、
+    # 🔹 あるいは user_id がログインユーザーをメンターとしているか、を検索
+    mentorship_found = Mentorship.query.filter(
+        or_(
+            # ケース1: ログインユーザーがメンティーで、user_idがメンター
+            (Mentorship.mentee_id == current_user_id) & (Mentorship.mentor_id == user_id),
+            # ケース2: user_idがメンティーで、ログインユーザーがメンター
+            (Mentorship.mentee_id == user_id) & (Mentorship.mentor_id == current_user_id)
+        )
+    ).first() # 最初の1件が見つかれば十分
+
+    if mentorship_found:
+        # 見つかったメンターシップの関係者情報を取得し、整形
+        mentor = User.query.get(mentorship_found.mentor_id)
+        mentee = User.query.get(mentorship_found.mentee_id)
+
+        if not mentor or not mentee:
+            # メンターまたはメンティーが見つからない場合はエラー
+            return jsonify({"message": "Associated user not found for this mentorship."}), 500
+
+        # メンターのランク情報を取得
+        mentor_ranks = [{
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        } for ur in mentor.user_ranks]
+
+        # メンターのカテゴリ情報を取得
+        mentor_categories = [{
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        } for uc in mentor.user_categories]
+
+        # メンティーのランク情報を取得 (必要であれば)
+        mentee_ranks = [{
+            'user_rank_id': ur.user_rank_id,
+            'rank_id': ur.rank_id,
+            'rank_name': ur.rank.rank_name,
+            'rank_code': ur.rank_code
+        } for ur in mentee.user_ranks]
+
+        # メンティーのカテゴリ情報を取得 (必要であれば)
+        mentee_categories = [{
+            'user_category_id': uc.user_category_id,
+            'category_id': uc.category_id,
+            'category_name': uc.category.category_name,
+            'category_code': uc.category.category_code
+        } for uc in mentee.user_categories]
+        
+        # メンターの指導中のメンティー数を取得（以前のget_mentorships関数と同じロジックを使用）
+        # Mentorshipモデルに'status'カラムがない場合は、status='accepted'を削除してください
+        mentees_count_for_mentor = Mentorship.query.filter_by(mentor_id=mentor.user_id).count()
+
+
+        return jsonify({
+            'mentorship_id': mentorship_found.mentorship_id,
+            'started_at': mentorship_found.started_at.isoformat(),
+            'status': getattr(mentorship_found, 'status', 'N/A'), # statusカラムがあれば取得、なければ'N/A'
+            'mentor': {
+                'user_id': mentor.user_id,
+                'first_name': mentor.first_name,
+                'last_name': mentor.last_name,
+                'profile_image': mentor.profile_image,
+                'username': mentor.username,
+                'ranks': mentor_ranks,
+                'categories': mentor_categories,
+                'mentees_count': mentees_count_for_mentor # 追加
+            },
+            'mentee': {
+                'user_id': mentee.user_id,
+                'first_name': mentee.first_name,
+                'last_name': mentee.last_name,
+                'profile_image': mentee.profile_image,
+                'username': mentee.username,
+                'ranks': mentee_ranks, # 必要であれば
+                'categories': mentee_categories # 必要であれば
+            }
+        }), 200
+    else:
+        # メンターシップ関係が見つからない場合
+        return jsonify({"message": "No direct mentorship relationship found between these users."}), 404
