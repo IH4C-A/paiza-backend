@@ -116,6 +116,15 @@ def get_chat_history():
     current_user_id = get_jwt_identity()
     receiver_user_id = request.args.get('receiver_user_id')
     
+    # ✅ 未読メッセージを既読に更新
+    Chats.query.filter(
+        Chats.send_user_id == receiver_user_id,
+        Chats.receiver_user_id == current_user_id,
+        Chats.is_read == False,
+        Chats.group_id.is_(None)
+    ).update({"is_read": True})
+
+    db.session.commit()
     # チャット履歴を取得
     chat_history = Chats.query.filter(
         ((Chats.send_user_id == current_user_id) & (Chats.receiver_user_id == receiver_user_id)) |
@@ -137,8 +146,17 @@ def get_chat_history():
 @jwt_required()
 def chat_send_group():
     group_id = request.args.get('group_id')
+    current_user_id = get_jwt_identity()
     
     if group_id:
+            # ✅ 未読メッセージを既読に更新
+        Chats.query.filter(
+            Chats.group_id == group_id,
+            Chats.receiver_user_id == current_user_id,
+            Chats.is_read == False
+        ).update({"is_read": True})
+    
+        db.session.commit()
         # グループチャットの履歴を取得し、送信者のユーザー情報を結合
         group_chat = db.session.query(Chats, User).join(User, Chats.send_user_id == User.user_id).filter(
             Chats.group_id == group_id
@@ -208,19 +226,10 @@ def get_chat_users():
         .group_by(Chats.send_user_id)
         .subquery()
     )
-
-    # 🔹 ステップ4: 最新のチャットとユーザー情報を結合
-    # 最新のメッセージ (rn = 1) のみを選択
-    # 相手のユーザー情報を取得するためにUserモデルと結合
-    # 未読カウントをouterjoinで結合 (未読がない相手も含むため)
-    
-    # UserAlias を定義して、相手のUser情報を取得
     PartnerUser = aliased(User)
 
     results = (
         db.session.query(
-            # ここで CTE から必要なカラムを明示的に選択します。
-            # これにより、forループでのアンパックが正しくなります。
             latest_dm_messages_cte.c.chat_id,
             latest_dm_messages_cte.c.send_user_id,
             latest_dm_messages_cte.c.receiver_user_id,
@@ -244,12 +253,7 @@ def get_chat_users():
     
     # 結果の整形
     chat_users_list = []
-    # forループのアンパックも、選択したカラムの数と順番に合わせます。
-    # CTEから選択したカラムは、タプルの先頭に順番に格納されます。
     for chat_id, send_user_id, receiver_user_id, message, chat_at, is_read, user_obj, unread_count in results:
-        # 相手のIDは PartnerUser.user_id から取得、または chat_row から特定
-        # `user_obj` は PartnerUser エイリアスに対応する `User` モデルのインスタンスです。
-        # したがって `user_obj.user_id` は相手のIDになります。
 
         chat_users_list.append({
             "user_id": user_obj.user_id, # PartnerUserのuser_idは常に相手のID
