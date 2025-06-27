@@ -7,12 +7,10 @@ from project import db, socket
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
-from  project.notification import create_notification 
+from  project.notification import create_notification
+from flask_jwt_extended import decode_token
 
 chats_bp = Blueprint('chats', __name__)
-
-
-from flask_jwt_extended import decode_token
 
 @socket.on('connect')
 def handle_connect():
@@ -88,15 +86,15 @@ def handle_send_message(data):
             title = "メンターからの返信"
             context = f'{send_user.first_name}が返信しました。'
             type = "mentor_reply"
-            create_notification(new_message.receiver_user_id,title,context,new_message.message,type,priority="high",actionurl=f"/chat/{new_message.send_user_id}")
+            create_notification(new_message.receiver_user_id,title,context,new_message.message,type,priority="high",actionurl=f"/chats/{new_message.send_user_id}")
             db.session.commit()
-
 
     # メッセージ送信をクライアントに通知
     emit('receive_message', {
+        'chat_id': new_message.chat_id,
         'message': new_message.message,
         'image': new_message.image,
-        'sender': new_message.sender.user_id if new_message.sender else 'Unknown',
+        'sender': new_message.sender.first_name if new_message.sender else 'Unknown',
         'group': new_message.group.group_name if new_message.group else None,  # リレーションを使用
         'chat_at': new_message.chat_at.strftime('%Y-%m-%d %H:%M:%S')
     }, broadcast=True)
@@ -107,7 +105,6 @@ def handle_send_message(data):
 def get_chat_image(filename):
     # 画像の保存先ディレクトリを指定
     upload_folder = current_app.config['UPLOAD_FOLDER_CHAT']
-    
     # 画像を返す
     return send_from_directory(upload_folder, filename)
 
@@ -119,6 +116,15 @@ def get_chat_history():
     current_user_id = get_jwt_identity()
     receiver_user_id = request.args.get('receiver_user_id')
     
+    # ✅ 未読メッセージを既読に更新
+    Chats.query.filter(
+        Chats.send_user_id == receiver_user_id,
+        Chats.receiver_user_id == current_user_id,
+        Chats.is_read == False,
+        Chats.group_id.is_(None)
+    ).update({"is_read": True})
+
+    db.session.commit()
     # チャット履歴を取得
     chat_history = Chats.query.filter(
         ((Chats.send_user_id == current_user_id) & (Chats.receiver_user_id == receiver_user_id)) |
@@ -127,6 +133,7 @@ def get_chat_history():
     
     # チャット履歴をJSON形式で返す
     return jsonify([{
+        'chat_id': chat.chat_id,
         'message': chat.message,
         'image': chat.image,
         'sender': chat.sender.first_name if chat.sender else 'Unknown',
@@ -139,8 +146,17 @@ def get_chat_history():
 @jwt_required()
 def chat_send_group():
     group_id = request.args.get('group_id')
+    current_user_id = get_jwt_identity()
     
     if group_id:
+            # ✅ 未読メッセージを既読に更新
+        Chats.query.filter(
+            Chats.group_id == group_id,
+            Chats.receiver_user_id == current_user_id,
+            Chats.is_read == False
+        ).update({"is_read": True})
+    
+        db.session.commit()
         # グループチャットの履歴を取得し、送信者のユーザー情報を結合
         group_chat = db.session.query(Chats, User).join(User, Chats.send_user_id == User.user_id).filter(
             Chats.group_id == group_id
@@ -165,23 +181,38 @@ def chat_send_group():
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 
+from sqlalchemy.orm import aliased # aliased は既にインポートされているはずです
+from sqlalchemy import or_, desc, func, case # func, case, or_, desc がインポートされていることを確認
+
 @chats_bp.route('/chat_users', methods=['GET'])
 @jwt_required()
 def get_chat_users():
     current_user_id = get_jwt_identity()
 
-    # 各相手ごとの最新チャット
-    latest_chats_subq = (
-        db.session.query(
-            Chats.receiver_user_id,
-            func.max(Chats.chat_at).label("latest_chat_at")
-        )
-        .filter(Chats.send_user_id == current_user_id)
-        .group_by(Chats.receiver_user_id)
-        .subquery()
-    )
+    latest_dm_messages_cte = db.session.query(
+        Chats.chat_id,
+        Chats.send_user_id,
+        Chats.receiver_user_id,
+        Chats.message,
+        Chats.chat_at,
+        Chats.is_read,
+        func.row_number().over(
+            partition_by=case(
+                (Chats.send_user_id == current_user_id, Chats.receiver_user_id),
+                (Chats.receiver_user_id == current_user_id, Chats.send_user_id)
+            ),
+            order_by=Chats.chat_at.desc()
+        ).label('rn') # Row Number
+    ).filter(
+        or_(
+            Chats.send_user_id == current_user_id,
+            Chats.receiver_user_id == current_user_id
+        ),
+        Chats.group_id.is_(None) # グループチャットは除外
+    ).cte('latest_dm_messages_cte')
 
-    # 自分宛の未読メッセージ件数を相手（送信者）ごとに取得
+
+    # 🔹 ステップ3: 自分宛の未読メッセージ件数を相手（送信者）ごとに取得
     unread_counts_subq = (
         db.session.query(
             Chats.send_user_id.label("user_id"),
@@ -189,37 +220,48 @@ def get_chat_users():
         )
         .filter(
             Chats.receiver_user_id == current_user_id,
-            Chats.is_read == False
+            Chats.is_read == False,
+            Chats.group_id.is_(None) # DMに限定
         )
         .group_by(Chats.send_user_id)
         .subquery()
     )
-
-    ChatsAlias = aliased(Chats)
+    PartnerUser = aliased(User)
 
     results = (
-        db.session.query(ChatsAlias, User, unread_counts_subq.c.unread_count)
-        .join(
-            latest_chats_subq,
-            (ChatsAlias.receiver_user_id == latest_chats_subq.c.receiver_user_id) &
-            (ChatsAlias.chat_at == latest_chats_subq.c.latest_chat_at)
+        db.session.query(
+            latest_dm_messages_cte.c.chat_id,
+            latest_dm_messages_cte.c.send_user_id,
+            latest_dm_messages_cte.c.receiver_user_id,
+            latest_dm_messages_cte.c.message,
+            latest_dm_messages_cte.c.chat_at,
+            latest_dm_messages_cte.c.is_read,
+            PartnerUser, # Userオブジェクト全体
+            unread_counts_subq.c.unread_count # 未読カウント
         )
-        .join(User, ChatsAlias.receiver_user_id == User.user_id)
-        .outerjoin(unread_counts_subq, unread_counts_subq.c.user_id == User.user_id)
-        .order_by(ChatsAlias.chat_at.desc())
+        .join(PartnerUser, 
+              or_(
+                  (latest_dm_messages_cte.c.send_user_id == current_user_id) & (PartnerUser.user_id == latest_dm_messages_cte.c.receiver_user_id),
+                  (latest_dm_messages_cte.c.receiver_user_id == current_user_id) & (PartnerUser.user_id == latest_dm_messages_cte.c.send_user_id)
+              )
+        )
+        .outerjoin(unread_counts_subq, unread_counts_subq.c.user_id == PartnerUser.user_id)
+        .filter(latest_dm_messages_cte.c.rn == 1) # 各DM相手との最新メッセージのみ
+        .order_by(latest_dm_messages_cte.c.chat_at.desc()) # 最新チャットを新しい順にソート
         .all()
     )
+    
+    # 結果の整形
+    chat_users_list = []
+    for chat_id, send_user_id, receiver_user_id, message, chat_at, is_read, user_obj, unread_count in results:
 
-    return jsonify([
-        {
-            "user_id": chat.receiver_user_id,
-            "user_name": user.first_name,  # ← 正しい属性名に
-            "profile_image": user.profile_image,
-            "last_message": chat.message,
-            "last_chat_at": chat.chat_at.strftime('%Y-%m-%d %H:%M:%S') if chat.chat_at else None,
+        chat_users_list.append({
+            "user_id": user_obj.user_id, # PartnerUserのuser_idは常に相手のID
+            "user_name": user_obj.first_name,
+            "profile_image": user_obj.profile_image,
+            "last_message": message, # CTEから取得したmessage
+            "last_chat_at": chat_at.isoformat() if chat_at else None, # CTEから取得したchat_at
             "unread_count": unread_count or 0
-        }
-        for chat, user, unread_count in results
-    ]), 200
+        })
 
-
+    return jsonify(chat_users_list), 200

@@ -4,6 +4,8 @@ from project import db
 from project.models import Mentorship, MentorshipSchedule, GroupMember, GroupChat, User
 from datetime import datetime
 import uuid
+from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
+
 
 mentor_schedule_bp = Blueprint('mentor_schedule', __name__)
 
@@ -60,8 +62,12 @@ def list_schedules():
         (MentorshipSchedule.group_id.in_(group_ids))
     ).order_by(MentorshipSchedule.start_time).all()
 
+    now = datetime.utcnow()
     result = []
     for s in schedules:
+        if s.start_time < now and s.status != "completed":
+            s.status = "completed"
+            db.session.add(s)
         item = {
             'schedule_id': s.schedule_id,
             'start_time': s.start_time.isoformat(),
@@ -122,7 +128,7 @@ def list_schedules():
 
 
         result.append(item)
-
+    db.session.commit()
     return jsonify(result)
 
 
@@ -143,6 +149,26 @@ def get_schedule(schedule_id):
 
         mentor_user = mentorship.mentor
         mentee_user = mentorship.mentee
+        
+        average_rating_mentor = get_average_mentor_rating(mentor_user.user_id)
+        average_rating_mentee = get_average_mentor_rating(mentee_user.user_id)
+
+        mentoruser_ranks = []
+        for ur in mentor_user.user_ranks:
+            mentoruser_ranks.append({
+                'user_rank_id': ur.user_rank_id,
+                'rank_id': ur.rank_id,
+                'rank_name': ur.rank.rank_name,
+                'rank_code': ur.rank_code
+            })
+        menteeuser_ranks = []
+        for ur in mentee_user.user_ranks:
+            menteeuser_ranks.append({
+                'user_rank_id': ur.user_rank_id,
+                'rank_id': ur.rank_id,
+                'rank_name': ur.rank.rank_name,
+                'rank_code': ur.rank_code
+            })
 
         return jsonify({
             'schedule_id': s.schedule_id,
@@ -158,17 +184,21 @@ def get_schedule(schedule_id):
                     'user_id': mentor_user.user_id,
                     'first_name': mentor_user.first_name,
                     'profile_image': mentor_user.profile_image,
+                    'ranks': mentoruser_ranks,
+                    'average_rating': average_rating_mentor,
                 },
                 'mentee': {
                     'user_id': mentee_user.user_id,
                     'first_name': mentee_user.first_name,
                     'profile_image': mentee_user.profile_image,
+                    'ranks': menteeuser_ranks,
+                    'average_rating': average_rating_mentee,
                 }
             }
         })
 
-    elif s.group_chat:
-        group = s.group_chat
+    elif s.group:
+        group = s.group
 
         # ログインユーザーがグループメンバーか確認
         is_member = db.session.query(GroupMember).filter_by(

@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from project.models import Rank, User, User_rank
 from flask_login import login_user
 from project import db
+from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -16,6 +17,8 @@ def get_users():
     users = User.query.all()
     user_list = []
     for user in users:
+        response = calculate_average_dm_response_time(user.user_id)
+        average_rating = get_average_mentor_rating(user.user_id)
     # ランク情報の取得
         user_ranks = []
         for ur in user.user_ranks:
@@ -48,7 +51,9 @@ def get_users():
             'address': user.address,
             'employment_status': user.employment_status,
             'ranks': user_ranks,
-            'categories': user_category
+            'categories': user_category,
+            'response_time': response if response is not None else "No DM history",
+            'average_rating': average_rating if average_rating is not None else 0
         }
         user_list.append(user_data)
     return jsonify(user_list), 200
@@ -57,6 +62,9 @@ def get_users():
 @user_bp.route('/users/<user_id>', methods=['GET'])
 def get_user(user_id):
     user = User.query.get(user_id)
+    
+    response = calculate_average_dm_response_time(user.user_id)
+    average_rating = get_average_mentor_rating(user.user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
 
@@ -91,7 +99,9 @@ def get_user(user_id):
         'address': user.address,
         'employment_status': user.employment_status,
         'ranks': user_ranks,
-        'categories': user_category
+        'categories': user_category,
+        'response_time': response if response is not None else "No DM history",
+        'average_rating': average_rating if average_rating is not None else 0
     }
     return jsonify(user_data), 200
 
@@ -230,6 +240,8 @@ def login():
 def get_current_user():
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
+    response = calculate_average_dm_response_time(current_user_id)
+    average_rating = get_average_mentor_rating(current_user_id)
     if not current_user:
         return jsonify({"error": "User not found."}), 404
 
@@ -264,7 +276,9 @@ def get_current_user():
         'address': current_user.address,
         'employment_status': current_user.employment_status,
         'ranks': user_ranks,
-        'categories': user_category
+        'categories': user_category,
+        'response_time': response if response is not None else "No DM history",
+        'average_rating': average_rating if average_rating is not None else 0
     }
     return jsonify(user_data), 200
 
