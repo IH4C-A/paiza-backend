@@ -1,5 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from sqlalchemy.sql.expression import func
 from project.models import Problem, User_category, User_rank
 from flask_login import login_user
 from project import db
@@ -23,13 +24,21 @@ def get_user_specific_problems():
     category_ids = [uc.category_id for uc in user_categories]
     rank_ids = [ur.rank_id for ur in user_ranks]
 
-    # 問題取得
-    problems = Problem.query.filter(
-        Problem.category_id.in_(category_ids),
-        Problem.rank_id.in_(rank_ids)
-    ).all()
+    problems = []
 
-    # category・rankをネストした形式で返す
+    if category_ids:
+        # ✅ カテゴリーがある場合：category_id × rank_id 両方一致
+        problems = Problem.query.filter(
+            Problem.category_id.in_(category_ids),
+            Problem.rank_id.in_(rank_ids)
+        ).all()
+    else:
+        # ❗カテゴリー未設定 → ランクだけ一致する問題をランダムに10件取得
+        problems = Problem.query.filter(
+            Problem.rank_id.in_(rank_ids)
+        ).order_by(func.random()).limit(10).all()
+
+    # category・rank をネストした形式で返す
     problem_list = []
     for p in problems:
         problem_data = {

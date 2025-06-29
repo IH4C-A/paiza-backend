@@ -111,7 +111,7 @@ def get_mentorships():
         # メンターが指導しているメンティーの数を取得
         mentees_count = Mentorship.query.filter_by(mentor_id=user.user_id).count()
         
-        average_rating = get_average_mentor_rating(mentor.user_id)
+        average_rating = get_average_mentor_rating(user.user_id)
 
 
         user_ranks = [{
