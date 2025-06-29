@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Problem
+from project.models import Problem, User_category, User_rank
 from flask_login import login_user
 from project import db
 from werkzeug.utils import secure_filename
@@ -11,19 +11,42 @@ import os
 
 problem_bp = Blueprint('problem', __name__)
 
-# Problem一覧取得
 @problem_bp.route('/problems', methods=['GET'])
-def get_problems():
-    problems = Problem.query.all()
+@jwt_required()
+def get_user_specific_problems():
+    user_id = get_jwt_identity()
+
+    # ユーザーのカテゴリとランクを取得
+    user_categories = User_category.query.filter_by(user_id=user_id).all()
+    user_ranks = User_rank.query.filter_by(user_id=user_id).all()
+
+    category_ids = [uc.category_id for uc in user_categories]
+    rank_ids = [ur.rank_id for ur in user_ranks]
+
+    # 問題取得
+    problems = Problem.query.filter(
+        Problem.category_id.in_(category_ids),
+        Problem.rank_id.in_(rank_ids)
+    ).all()
+
+    # category・rankをネストした形式で返す
     problem_list = []
-    for problem in problems:
+    for p in problems:
         problem_data = {
-            'problem_id': problem.problem_id,
-            'problem_text': problem.problem_text,
-            'category_id': problem.category_id,
-            'rank_id': problem.rank_id,
+            "problem_id": p.problem_id,
+            "problem_text": p.problem_text,
+            "category": {
+                "category_id": p.category.category_id,
+                "category_name": p.category.category_name,
+                "category_code": p.category.category_code
+            },
+            "rank": {
+                "rank_id": p.rank.rank_id,
+                "rank_name": p.rank.rank_name
+            }
         }
         problem_list.append(problem_data)
+
     return jsonify(problem_list), 200
 
 # problem詳細取得

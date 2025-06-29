@@ -22,8 +22,6 @@ class User(db.Model, UserMixin):
     def get_id(self):
         return str(self.user_id)
 
-
-
 # categoryテーブル
 class Category(db.Model):
     category_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
@@ -52,12 +50,10 @@ class School_info(db.Model):
     
     user = db.relationship('User', backref='school_info', lazy=True)
 
-
 # Rankテーブル
 class Rank(db.Model):
     rank_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     rank_name = db.Column(db.String(50), nullable=False)  # ランク名
-    
 
 # User_rankテーブル✅
 class User_rank(db.Model):
@@ -79,6 +75,31 @@ class Problem(db.Model):
     category = db.relationship('Category', backref='problems', lazy=True)
     rank = db.relationship('Rank', backref='problems', lazy=True)
 
+class Submission(db.Model):
+    __tablename__ = 'submission'
+
+    submission_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
+    problem_id = db.Column(db.String(36), db.ForeignKey('problem.problem_id'), nullable=False)
+    code_text = db.Column(db.Text, nullable=False)
+    language = db.Column(db.String(20), nullable=False)
+    passed = db.Column(db.Boolean, default=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='submissions', lazy=True)
+    problem = db.relationship('Problem', backref='submissions', lazy=True)
+
+class TestCase(db.Model):
+    __tablename__ = 'test_case'
+
+    test_case_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    problem_id = db.Column(db.String(36), db.ForeignKey('problem.problem_id'), nullable=False)
+    input_text = db.Column(db.Text, nullable=False)
+    expected_output = db.Column(db.Text, nullable=False)
+    is_public = db.Column(db.Boolean, default=False)
+
+    problem = db.relationship('Problem', backref='test_cases', lazy=True)
+
 # Answerテーブル✅
 class Answer(db.Model):
     answer_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
@@ -98,7 +119,6 @@ class Mentorship(db.Model):
     
     mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentorships_as_mentor', lazy=True)
     mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentorships_as_mentee', lazy=True)
-
 
 class MentorshipRequest(db.Model):
     request_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
@@ -154,7 +174,6 @@ class GroupChat(db.Model):
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
     create_by = db.Column(db.String(36), db.ForeignKey('user.user_id'))
 
-
 # GroupMemberテーブル✅
 class GroupMember(db.Model):
     group_member_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
@@ -197,7 +216,6 @@ class Board_Category(db.Model):
 
     category = db.relationship('Category', backref='board_categories', lazy=True)
     board = db.relationship('Board', backref='board_categories', lazy=True)
-
 
 # commentテーブル
 class Comment(db.Model):
@@ -288,7 +306,6 @@ class ArticleLikes(db.Model):
     article = db.relationship('Article', backref='likes', lazy=True)
     user = db.relationship('User', backref='liked_articles', lazy=True)  # ユーザーがいいねした記事
 
-
 class MentorshipSchedule(db.Model):
     schedule_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
     mentorship_id = db.Column(db.String(36), db.ForeignKey('mentorship.mentorship_id'), nullable=True)
@@ -317,7 +334,6 @@ class MentorshipNote(db.Model):
 
     mentorship = db.relationship('Mentorship', backref='notes')
     user = db.relationship('User', backref='mentorship_notes')
-
 
 class MentorshipFeedback(db.Model):
     feedback_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)

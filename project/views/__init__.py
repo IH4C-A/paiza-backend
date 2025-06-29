@@ -22,6 +22,8 @@ from .Board_views import Board_bp
 from .mentor_schedule_views import mentor_schedule_bp
 from .mentor_note_views import mentor_note_bp
 from .mentor_feedback_views import mentor_feedback_bp
+from .testcase_views import test_case_api
+from .submission_views import submission_api
 
 def register_blueprints(app):
     app.register_blueprint(user_bp)
@@ -48,4 +50,6 @@ def register_blueprints(app):
     app.register_blueprint(mentor_schedule_bp)
     app.register_blueprint(mentor_note_bp)
     app.register_blueprint(mentor_feedback_bp)
+    app.register_blueprint(test_case_api)
+    app.register_blueprint(submission_api)
 
