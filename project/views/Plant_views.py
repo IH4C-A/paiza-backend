@@ -67,7 +67,47 @@ def get_plant():
     }
     return jsonify(plant_data), 200
 
+@Plant_bp.route('/plant_user/<user_id>', methods=['GET'])
+def get_user_plant(user_id):
+    plant = Plant.query.filter_by(user_id=user_id).first()
+    
+    if not plant:
+        return jsonify({'message': 'Plant not found'}), 404
 
+    # 初期化
+    milestones_data = None
+
+    growth_milestones = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first()
+    if growth_milestones:
+        logs = GrowthMilestoneLog.query.filter_by(milestone_id=growth_milestones.milestone_id).all()
+        logs_data = [
+            {
+                'log_id': log.log_id,
+                'log_message': log.log_message,
+                'created_at': log.created_at
+            }
+            for log in logs
+        ]
+        milestones_data = {
+            'milestone_id': growth_milestones.milestone_id,
+            'milestone': growth_milestones.milestone,
+            'level': growth_milestones.level,
+            'achieved_at': growth_milestones.achieved_at,
+            'logs': logs_data
+        }
+    plant_data = {
+        'plant_id': plant.plant_id,
+        'user_id': plant.user_id,
+        'growth_stage': plant.growth_stage,
+        'mood': plant.mood,
+        'last_updated': plant.last_updated,
+        'plant_name': plant.plant_name,
+        'color': plant.color,
+        'size': plant.size,
+        'motivation_style': plant.motivation_style,
+        'growth_milestones': milestones_data  # None も許容する
+    }
+    return jsonify(plant_data), 200
 
 #plantの登録
 @Plant_bp.route('/plant',methods=['POST'])

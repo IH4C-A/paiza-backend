@@ -67,6 +67,7 @@ def get_problem(problem_id):
 
     answer_data = {
         'problem_id': problem.problem_id,
+        'problem_title': problem.problem_title,
         'problem_text': problem.problem_text,
         "category": {
             "category_id": problem.category.category_id,

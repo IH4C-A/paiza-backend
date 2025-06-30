@@ -1,6 +1,6 @@
 from flask import request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from project.models import Rank, User, User_rank
+from project.models import Mentorship, Rank, User, User_rank
 from flask_login import login_user
 from project import db
 from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
@@ -50,6 +50,7 @@ def get_users():
             'seibetu': user.seibetu,
             'address': user.address,
             'employment_status': user.employment_status,
+            'created_at': user.created_at.isoformat(),
             'ranks': user_ranks,
             'categories': user_category,
             'response_time': response if response is not None else "No DM history",
@@ -68,6 +69,8 @@ def get_user(user_id):
     if not user:
         return jsonify({"error": "User not found."}), 404
 
+
+    mentees_count = Mentorship.query.filter_by(mentor_id=user.user_id).count()
     # ランク情報の取得
     user_ranks = []
     for ur in user.user_ranks:
@@ -98,6 +101,8 @@ def get_user(user_id):
         'seibetu': user.seibetu,
         'address': user.address,
         'employment_status': user.employment_status,
+        'created_at': user.created_at.isoformat(),
+        'mentees_count': mentees_count,
         'ranks': user_ranks,
         'categories': user_category,
         'response_time': response if response is not None else "No DM history",
