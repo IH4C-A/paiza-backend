@@ -59,7 +59,6 @@ def get_user_specific_problems():
 
     return jsonify(problem_list), 200
 
-# problem詳細取得
 @problem_bp.route('/problem/<problem_id>', methods=['GET'])
 def get_problem(problem_id):
     problem = Problem.query.get(problem_id)
@@ -67,12 +66,30 @@ def get_problem(problem_id):
         return jsonify({"error": "problem not found."}), 404
 
     answer_data = {
-            'problem_id': problem.problem_id,
-            'problem_text': problem.problem_text,
-            'category_id': problem.category_id,
-            'rank_id': problem.rank_id,
-        }
+        'problem_id': problem.problem_id,
+        'problem_text': problem.problem_text,
+        "category": {
+            "category_id": problem.category.category_id,
+            "category_name": problem.category.category_name,
+            "category_code": problem.category.category_code
+        },
+        "rank": {
+            "rank_id": problem.rank.rank_id,
+            "rank_name": problem.rank.rank_name
+        },
+        "test_cases": [
+            {
+                "test_case_id": tc.test_case_id,
+                "input_text": tc.input_text,
+                "expected_output": tc.expected_output,
+                "is_public": tc.is_public
+            }
+            for tc in problem.test_cases  # ← backref により取得可
+        ]
+    }
+
     return jsonify(answer_data), 200
+
 
 # problem登録
 @problem_bp.route('/problem', methods=['POST'])
