@@ -43,6 +43,7 @@ def get_user_specific_problems():
     for p in problems:
         problem_data = {
             "problem_id": p.problem_id,
+            "problem_title": p.problem_title,
             "problem_text": p.problem_text,
             "category": {
                 "category_id": p.category.category_id,
@@ -77,6 +78,7 @@ def get_problem(problem_id):
 @problem_bp.route('/problem', methods=['POST'])
 def register_problem():
     data = request.get_json()
+    problem_title = data.get('problem_title')
     problem_text = data.get('problem_text')
     category_id = data.get('category_id')
     rank_id = data.get('rank_id')
@@ -85,6 +87,7 @@ def register_problem():
         return jsonify({"error": "problem_text, category_id are required."}), 400
 
     new_problem = Problem(
+        problem_title=problem_title,
         problem_text=problem_text,
         category_id=category_id,
         rank_id=rank_id
@@ -95,12 +98,12 @@ def register_problem():
 
     return jsonify({
         'problem_id': new_problem.problem_id,
+        'problem_title': new_problem.problem_title,
         'problem_text': new_problem.problem_text,
         'category_id': new_problem.category_id,
         'rank_id': new_problem.rank_id}), 201
 
 
-# category_idに紐づくproblem一覧取得
 @problem_bp.route('/problems/category/<string:category_id>', methods=['GET'])
 def get_problems_by_category(category_id):
     problems = Problem.query.filter_by(category_id=category_id).all()
@@ -110,14 +113,23 @@ def get_problems_by_category(category_id):
     problem_list = []
     for problem in problems:
         problem_data = {
-            'problem_id': problem.problem_id,
-            'problem_text': problem.problem_text,
-            'category_id': problem.category_id,
-            'rank_id': problem.rank_id,
+            "problem_id": problem.problem_id,
+            "problem_title": problem.problem_title,
+            "problem_text": problem.problem_text,
+            "category": {
+                "category_id": problem.category.category_id,
+                "category_name": problem.category.category_name,
+                "category_code": problem.category.category_code
+            },
+            "rank": {
+                "rank_id": problem.rank.rank_id,
+                "rank_name": problem.rank.rank_name
+            }
         }
         problem_list.append(problem_data)
-    
+
     return jsonify(problem_list), 200
+
 
 # rank_idに紐づくproblem一覧取得
 @problem_bp.route('/problems/rank/<string:rank_id>', methods=['GET'])

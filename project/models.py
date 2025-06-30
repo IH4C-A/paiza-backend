@@ -68,6 +68,7 @@ class User_rank(db.Model):
 # Problemテーブル✅
 class Problem(db.Model):
     problem_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    problem_title = db.Column(db.String(255),nullable=False)
     problem_text = db.Column(db.Text, nullable=False)
     category_id = db.Column(db.String(36), db.ForeignKey('category.category_id'), nullable=False)
     rank_id = db.Column(db.String(36), db.ForeignKey('rank.rank_id'), nullable=False)
