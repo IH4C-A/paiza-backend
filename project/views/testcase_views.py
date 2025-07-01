@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from project import db
 from project.models import TestCase
 import uuid
-from project.run_code import run_python_code
+from project.untils.run_code import run_python_code
 
 test_case_api = Blueprint("test_case_api", __name__)
 

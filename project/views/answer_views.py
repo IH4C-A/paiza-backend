@@ -22,7 +22,7 @@ def get_users():
 # answer詳細取得
 @answer_bp.route('/answer/<string:problem_id>', methods=['GET'])
 def get_answer(problem_id):
-    answer = Answer.query.get(problem_id = problem_id)
+    answer = Answer.query.filter_by(problem_id = problem_id).first()
     # problem_idでAnswerを取得
     # もしAnswerが見つからなければ404エラーを返す
     if not answer:
