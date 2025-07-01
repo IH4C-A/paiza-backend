@@ -1,0 +1,98 @@
+from flask import Blueprint, request, jsonify
+from project import db
+from project.models import TestCase
+import uuid
+from project.run_code import run_python_code
+
+test_case_api = Blueprint("test_case_api", __name__)
+
+# 作成
+@test_case_api.route("/test_cases", methods=["POST"])
+def create_test_case():
+    data = request.get_json()
+    test_case = TestCase(
+        test_case_id=str(uuid.uuid4()),
+        problem_id=data["problem_id"],
+        input_text=data["input_text"],
+        expected_output=data["expected_output"],
+        is_public=data.get("is_public", False)
+    )
+    db.session.add(test_case)
+    db.session.commit()
+    return jsonify({"message": "テストケースを作成しました", "test_case_id": test_case.test_case_id}), 201
+
+# 一覧取得（問題IDでフィルター可）
+@test_case_api.route("/test_cases", methods=["GET"])
+def get_test_cases():
+    problem_id = request.args.get("problem_id")
+    query = TestCase.query
+    if problem_id:
+        query = query.filter_by(problem_id=problem_id)
+    cases = query.all()
+    return jsonify([{
+        "test_case_id": case.test_case_id,
+        "problem_id": case.problem_id,
+        "input_text": case.input_text,
+        "expected_output": case.expected_output,
+        "is_public": case.is_public,
+    } for case in cases])
+
+# 単一取得
+@test_case_api.route("/test_cases/<test_case_id>", methods=["GET"])
+def get_test_case(test_case_id):
+    case = TestCase.query.get_or_404(test_case_id)
+    return jsonify({
+        "test_case_id": case.test_case_id,
+        "problem_id": case.problem_id,
+        "input_text": case.input_text,
+        "expected_output": case.expected_output,
+        "is_public": case.is_public,
+    })
+
+# 更新
+@test_case_api.route("/test_cases/<test_case_id>", methods=["PUT"])
+def update_test_case(test_case_id):
+    data = request.get_json()
+    case = TestCase.query.get_or_404(test_case_id)
+    case.input_text = data.get("input_text", case.input_text)
+    case.expected_output = data.get("expected_output", case.expected_output)
+    case.is_public = data.get("is_public", case.is_public)
+    db.session.commit()
+    return jsonify({"message": "テストケースを更新しました"})
+
+# 削除
+@test_case_api.route("/test_cases/<test_case_id>", methods=["DELETE"])
+def delete_test_case(test_case_id):
+    case = TestCase.query.get_or_404(test_case_id)
+    db.session.delete(case)
+    db.session.commit()
+    return jsonify({"message": "テストケースを削除しました"})
+
+
+@test_case_api.route('/run', methods=['POST'])
+def run_code():
+    data = request.get_json()
+    code = data.get("code")
+    problem_id = data.get("problem_id")
+    language = data.get("language")
+
+    if language != "python":
+        return jsonify({"error": "Only Python is supported for now."}), 400
+
+    test_cases = TestCase.query.filter_by(problem_id=problem_id).all()
+
+    results = []
+    for case in test_cases:
+        result = run_python_code(code, case.input_text)
+        passed = result["output"].strip() == case.expected_output.strip()
+        results.append({
+            "test_case_id": case.test_case_id,
+            "input": case.input_text,
+            "expected_output": case.expected_output,
+            "actual_output": result["output"],
+            "execution_time": result["execution_time"],
+            "passed": passed,
+        })
+
+    all_passed = all(r["passed"] for r in results)
+    return jsonify({"passed": all_passed, "results": results})
