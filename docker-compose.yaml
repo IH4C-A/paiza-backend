@@ -1,0 +1,8 @@
+version: "3.8"
+
+services:
+  voicevox:
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    container_name: voicevox_engine # コンテナ名を指定しておくとわかりやすい
+    ports:
+      - "50021:50021"

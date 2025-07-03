@@ -38,7 +38,7 @@ def create_app(config_filename="config.py"):
     # 画像アップロードの設定
     app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), 'project/static/prof_image/')
 
-    app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+    app.config['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
 
     from project.models import Category, User, School_info, Rank, Problem, User_category, User_rank, GroupMember
 
