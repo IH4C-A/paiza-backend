@@ -150,9 +150,9 @@ def get_problems_by_category(category_id):
 
 
 # rank_idに紐づくproblem一覧取得
-@problem_bp.route('/problems/rank/<string:rank_id>', methods=['GET'])
-def get_problems_by_rank(rank_id):
-    problems = Problem.query.filter_by(rank_id=rank_id).all()
+@problem_bp.route('/problem_all', methods=['GET'])
+def get_problems_by_rank():
+    problems = Problem.query.all()
     if not problems:
         return jsonify({"error": "No problems found for this rank."}), 404
 

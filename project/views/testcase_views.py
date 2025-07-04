@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from project import db
 from project.models import TestCase
 import uuid
-from project.run_code import run_python_code
+from project.untils.run_code import run_python_code
 
 test_case_api = Blueprint("test_case_api", __name__)
 
@@ -11,7 +11,6 @@ test_case_api = Blueprint("test_case_api", __name__)
 def create_test_case():
     data = request.get_json()
     test_case = TestCase(
-        test_case_id=str(uuid.uuid4()),
         problem_id=data["problem_id"],
         input_text=data["input_text"],
         expected_output=data["expected_output"],
@@ -75,15 +74,12 @@ def run_code():
     code = data.get("code")
     problem_id = data.get("problem_id")
     language = data.get("language")
-
-    if language != "python":
-        return jsonify({"error": "Only Python is supported for now."}), 400
-
     test_cases = TestCase.query.filter_by(problem_id=problem_id).all()
-
+    print(code,language)
     results = []
     for case in test_cases:
         result = run_python_code(code, case.input_text)
+        print(result)
         passed = result["output"].strip() == case.expected_output.strip()
         results.append({
             "test_case_id": case.test_case_id,
@@ -95,4 +91,6 @@ def run_code():
         })
 
     all_passed = all(r["passed"] for r in results)
+    print(all_passed)
+    print(results)
     return jsonify({"passed": all_passed, "results": results})
