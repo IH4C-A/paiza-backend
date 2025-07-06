@@ -93,7 +93,7 @@ def talk():
     prompt = f"""あなたは[{plant_name}]という植物のキャラクターです。
 {prompt_instruction}
 ユーザーからのメッセージに日本語で応答してください。
-現在の植物の状態：成長段階は[{plant.growth_stage}]、気分は[{plant.mood}]、大きさは[{plant.size}]です。
+現在の植物の状態：成長段階は[{plant.growth_stage}]、気分は[{plant.mood}]です。
 ユーザー: {user_transcript}
 {plant_name}としての返答:"""
 

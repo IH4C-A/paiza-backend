@@ -67,7 +67,8 @@ def get_mentorships():
                 'categories': mentor_categories,
                 'mentees_count': mentees_count,
                 'response_time': response,  # 🔹 追加: メンターの平均返信時間
-                'average_rating': average_rating  # 🔹 追加: メンターの平均評価
+                'average_rating': average_rating,  # 🔹 追加: メンターの平均評価
+                'mentor_status': 'available' if mentees_count < 15 else 'busy'
             }
         })
 
@@ -139,7 +140,8 @@ def get_mentorships():
             'categories': user_categories,
             'mentees_count': mentees_count,
             'response_time': response,
-            'average_rating': average_rating
+            'average_rating': average_rating,
+            'mentor_status': 'available' if mentees_count < 15 else 'busy'
         })
 
     # print(candidate_mentors)
@@ -497,3 +499,48 @@ def get_user_mentorships(user_id):
     else:
         # メンターシップ関係が見つからない場合
         return jsonify({"message": "No direct mentorship relationship found between these users."}), 404
+
+
+@mentorship_bp.route('/my-mentorships', methods=['GET'])
+@jwt_required()
+def get_my_mentorships():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # 🔍 ユーザーのrank_code一覧を取得
+    rank_codes = [ur.rank_code for ur in user.user_ranks]
+    is_mentor = 'mentor' in rank_codes
+
+    if is_mentor:
+        # ✅ メンター：自分が担当しているメンティー一覧
+        mentorships = Mentorship.query.filter_by(mentor_id=user_id).all()
+    else:
+        # ✅ メンティー：自分が申請したメンター一覧
+        mentorships = Mentorship.query.filter_by(mentee_id=user_id).all()
+
+    result = []
+    for ms in mentorships:
+        partner = ms.mentee if is_mentor else ms.mentor
+
+        result.append({
+            "mentorship_id": ms.mentorship_id,
+            "started_at": ms.started_at.isoformat(),
+            "ended_at": ms.ended_at.isoformat() if ms.ended_at else None,
+            "user": {
+                "user_id": partner.user_id,
+                "first_name": partner.first_name,
+                "last_name": partner.last_name,
+                "username": partner.username,
+                "profile_image": partner.profile_image,
+                "employment_status": partner.employment_status,
+                # 任意でカテゴリ・ランク・評価など追加可能
+            }
+        })
+
+    return jsonify({
+        "role": "mentor" if is_mentor else "mentee",
+        "mentorships": result
+    }), 200
+
