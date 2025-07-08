@@ -2,6 +2,7 @@ from datetime import datetime
 import uuid
 from project.models import Notification
 from project import db
+from project.linebot import send_line_notification
 
 def create_notification(
     user_id,
@@ -25,3 +26,9 @@ def create_notification(
     )
     db.session.add(notification)
     db.session.commit()
+    
+    try:
+        line_message = f"🔔 {title}\n{message}\n優先度: {priority}"
+        send_line_notification(line_message)
+    except Exception as e:
+        print(f"LINE通知エラー: {e}")
