@@ -18,6 +18,7 @@ class User(db.Model, UserMixin):
     employment_status = db.Column(db.String(50), nullable=True)  # 雇用形態
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    line_user_id = db.Column(db.String(64), unique=True, nullable=True)
     
     def get_id(self):
         return str(self.user_id)
