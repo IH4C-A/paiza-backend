@@ -49,6 +49,18 @@ def create_submission():
                     # ランクを更新
                     current_user_rank.rank_id = next_rank.rank_id
                     db.session.commit()
+                            # 🔶 Aランクに昇格したら mentor コード付きの User_rank を新規作成
+                    if next_rank_name == "A":
+                        existing_mentor_rank = User_rank.query.filter_by(user_id=user_id, rank_code="mentor").first()
+                        if not existing_mentor_rank:
+                            new_mentor_rank = User_rank(
+                                user_rank_id=str(uuid.uuid4()),
+                                user_id=user_id,
+                                rank_id=next_rank.rank_id,  # AランクのIDを再利用
+                                rank_code="mentor"
+                            )
+                            db.session.add(new_mentor_rank)
+                            db.session.commit()
             # growth_milestones登録
         plant = Plant.query.filter_by(user_id = user_id).first()
         growth_milestone = GrowthMilestone.query.filter_by(plant_id=plant.plant_id).first() if plant else None
