@@ -25,6 +25,7 @@ from .mentor_feedback_views import mentor_feedback_bp
 from .testcase_views import test_case_api
 from .submission_views import submission_api
 from .gemini_views import gemini
+from .line_views import line_bp
 
 def register_blueprints(app):
     app.register_blueprint(user_bp)
@@ -54,4 +55,5 @@ def register_blueprints(app):
     app.register_blueprint(test_case_api)
     app.register_blueprint(submission_api)
     app.register_blueprint(gemini)
+    app.register_blueprint(line_bp)
 

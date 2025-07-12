@@ -10,3 +10,5 @@ werkzeug==2.3.7
 python-dotenv==0.19.1
 eventlet
 google-generativeai
+python-jose
+line-bot-sdk

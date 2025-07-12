@@ -1,5 +1,6 @@
-from flask import request, jsonify, Blueprint, current_app, send_from_directory
+from flask import redirect, request, jsonify, Blueprint, current_app, send_from_directory
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+import requests
 from project.models import Mentorship, Rank, User, User_rank
 from flask_login import login_user
 from project import db
@@ -8,7 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
-
+from jose import jwt
 
 user_bp = Blueprint('user', __name__)
 
@@ -136,6 +137,7 @@ def register_user():
     seibetu = data.get('seibetu')
     address = data.get('address')
     employment_status = data.get('employment_status')
+    line_login_user_id=data.get("line_login_user_id"),
 
     if  not password or not email:
         return jsonify({"error": "Username, password, and email are required."}), 400
@@ -158,7 +160,8 @@ def register_user():
         age=age,
         seibetu=seibetu,
         address=address,
-        employment_status=employment_status
+        employment_status=employment_status,
+        line_login_user_id=line_login_user_id
     )
 
     db.session.add(new_user)
@@ -300,3 +303,35 @@ def hello():
 def index():
     print("hello")
     return jsonify({"message": "Welcome to the Flask API!"})
+
+@user_bp.route("/api/line/callback")
+def line_callback():
+    code = request.args.get("code")
+    redirect_uri = "https://paiza-nurture-api.inrigsnet.com/api/line/callback"
+
+    # アクセストークン取得
+    token_res = requests.post(
+        "https://api.line.me/oauth2/v2.1/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "client_id": os.getenv("LINE_LOGIN_CHANNEL_ID"),
+            "client_secret": os.getenv("LINE_LOGIN_CHANNEL_SECRET"),
+        },
+    )
+    token_data = token_res.json()
+    id_token = token_data["id_token"]
+
+    decoded = jwt.decode(
+        id_token,
+        os.getenv("LINE_LOGIN_CHANNEL_SECRET"),
+        algorithms=["HS256"],
+        audience=os.getenv("LINE_LOGIN_CHANNEL_ID"),
+    )
+
+    line_user_id = decoded["sub"]
+
+    # 登録ページにuserIdを渡す
+    return redirect(f"https://paiza-nurture.inrigsnet.com/auth/signup?line_user_id={line_user_id}")
