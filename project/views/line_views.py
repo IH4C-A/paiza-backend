@@ -12,6 +12,22 @@ from linebot import LineBotApi, WebhookHandler
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_SECRET"))
 
+@line_bp.route("/api/line/check_connection")
+def check_line_connection():
+    token = request.args.get("token")
+    if not token:
+        return jsonify({"connected": False}), 400
+
+    # token から user を特定（例: セッション管理や JWT デコード）
+    # ここでは仮に token が user_id だと仮定
+    user = User.query.filter_by(session_token=token).first()  # あなたの実装に応じて変更
+
+    if not user:
+        return jsonify({"connected": False}), 404
+
+    # line_bot_user_id がセットされていれば連携済み
+    connected = user.line_bot_user_id is not None
+    return jsonify({"connected": connected})
 
 @line_bp.route("/line/webhook", methods=["POST"])
 def callback():
