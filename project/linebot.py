@@ -4,9 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def send_line_notification(message: str):
+def send_line_notification(message: str, line_user_id: str):
     token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-    user_id = os.getenv("LINE_USER_ID")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -14,7 +13,7 @@ def send_line_notification(message: str):
     }
 
     payload = {
-        "to": user_id,
+        "to": line_user_id,
         "messages": [{"type": "text", "text": message}]
     }
 
