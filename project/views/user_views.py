@@ -224,24 +224,32 @@ def delete_user(user_id):
 
     return jsonify({"message": "User deleted successfully!"})
 
-# ユーザーログイン
 @user_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    line_user_id = data.get('line_user_id')  # LINEログイン用
 
+    # --- LINEログイン処理 ---
+    if line_user_id:
+        user = User.query.filter_by(line_login_user_id=line_user_id).first()
+        if not user:
+            return jsonify({'error': 'LINEユーザーが見つかりません'}), 404
+
+        access_token = create_access_token(identity=user.user_id)
+        return jsonify({'token': access_token}), 200
+
+    # --- メール＆パスワード ログイン処理 ---
     if not email or not password:
-        return jsonify({"error": "Username and password are required."}), 400
+        return jsonify({"error": "メールアドレスとパスワードは必須です"}), 400
 
     user = User.query.filter_by(email=email).first()
-    if user :
-        if check_password_hash(user.password,password):
-            login_user(user)
-            access_token = create_access_token(identity=user.user_id)
-            return jsonify({'token':access_token}), 200
-        else:
-            return jsonify({'error': 'login error'}), 400
+    if user and check_password_hash(user.password, password):
+        access_token = create_access_token(identity=user.user_id)
+        return jsonify({'token': access_token}), 200
+    else:
+        return jsonify({'error': 'ログインに失敗しました'}), 400
 
 @user_bp.route('/login_user', methods=['GET'])
 @jwt_required()
