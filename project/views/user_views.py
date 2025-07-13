@@ -330,7 +330,11 @@ def line_callback():
         },
     )
     token_data = token_res.json()
-    id_token = token_data["id_token"]
+    id_token = token_data.get("id_token")
+
+    if not id_token:
+        # エラーハンドリング
+        return "Invalid token response", 400
 
     decoded = jwt.decode(
         id_token,
@@ -341,5 +345,17 @@ def line_callback():
 
     line_user_id = decoded["sub"]
 
-    # 登録ページにuserIdを渡す
-    return redirect(f"https://paiza-nurture.inrigsnet.com/auth/signup?line_user_id={line_user_id}")
+    # DBからユーザー検索
+    user = User.query.filter_by(line_login_user_id=line_user_id).first()
+
+    if user:
+        # ログイン処理にリダイレクト（トークン発行やセッション設定など）
+        # 例: JWT発行してフロントに渡すURLへリダイレクト
+        # ここはあなたのログイン後のURLに置き換えてください
+        login_redirect_url = f"https://paiza-nurture.inrigsnet.com/auth/signin?line_user_id={line_user_id}"
+        return redirect(login_redirect_url)
+
+    else:
+        # 未登録なら登録ページにリダイレクト
+        signup_redirect_url = f"https://paiza-nurture.inrigsnet.com/auth/signup?line_user_id={line_user_id}"
+        return redirect(signup_redirect_url)
