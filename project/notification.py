@@ -1,8 +1,7 @@
 from datetime import datetime
 from project.models import Notification, User  # Userを追加
 from project import db
-from project.linebot import send_line_notification
-
+from project.linebot import send_line_flex_notification
 
 def create_notification(
     user_id,
@@ -27,11 +26,9 @@ def create_notification(
     db.session.add(notification)
     db.session.commit()
 
-    # ✅ user情報を取得して、line_bot_user_idがあるか確認
     try:
         user = User.query.get(user_id)
         if user and user.line_bot_user_id:
-            line_message = f"🔔 {title}\n{message}\n優先度: {priority}"
-            send_line_notification(line_message, user.line_bot_user_id)
+            send_line_flex_notification(title, message, user.line_bot_user_id, actionurl)
     except Exception as e:
         print(f"LINE通知エラー: {e}")

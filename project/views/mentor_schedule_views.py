@@ -5,7 +5,7 @@ from project.models import Mentorship, MentorshipSchedule, GroupMember, GroupCha
 from datetime import datetime
 import uuid
 from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
-
+from project.notification import create_notification
 
 mentor_schedule_bp = Blueprint('mentor_schedule', __name__)
 
@@ -18,7 +18,6 @@ def create_schedule():
     mentorship_id = data.get('mentorship_id') or None
     group_id = data.get('group_id') or None
 
-    # どちらか一方のみ指定
     if bool(mentorship_id) == bool(group_id):
         return jsonify({'error': 'mentorship_id または group_id のいずれか一方のみ指定してください'}), 400
 
@@ -38,9 +37,48 @@ def create_schedule():
     )
     db.session.add(schedule)
     db.session.commit()
+
+    # 🔔 通知処理（個別 or グループ）
+    try:
+        title = "📅 新しい予定が作成されました"
+        start_str = schedule.start_time.strftime("%Y/%m/%d %H:%M")
+        message = f"{start_str} に予定があります。\n内容: {schedule.topic or '（未設定）'}"
+        detail = schedule.description or ""
+        actionurl = f"/schedules/{schedule.schedule_id}"  # フロントでの詳細ページURL
+
+        if mentorship_id:
+            mentorship = Mentorship.query.get(mentorship_id)
+            if mentorship:
+                for uid in [mentorship.mentor_id, mentorship.mentee_id]:
+                    create_notification(
+                        user_id=uid,
+                        title=title,
+                        message=message,
+                        detail=detail,
+                        type="task_reminder",
+                        priority="normal",
+                        actionurl=actionurl
+                    )
+
+        elif group_id:
+            from project.models import GroupMember  # 必要に応じてインポート
+
+            group_users = GroupMember.query.filter_by(group_id=group_id).all()
+            for gu in group_users:
+                create_notification(
+                    user_id=gu.user_id,
+                    title=title,
+                    message=message,
+                    detail=detail,
+                    type="task_reminder",
+                    priority="normal",
+                    actionurl=actionurl
+                )
+
+    except Exception as e:
+        print(f"スケジュール通知エラー: {e}")
+
     return jsonify({'schedule_id': schedule.schedule_id}), 201
-
-
 # Read (list)
 @mentor_schedule_bp.route('/mentorship-schedules', methods=['GET'])
 @jwt_required()

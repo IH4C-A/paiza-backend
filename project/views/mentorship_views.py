@@ -4,11 +4,10 @@ from project.models import Mentorship, MentorshipRequest, User, User_category, U
 from flask_login import login_user
 from project import db
 from project.chat_response import calculate_average_dm_response_time, get_average_mentor_rating
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from sqlalchemy import or_, select
+from project.notification import create_notification
 
 mentorship_bp = Blueprint('mentorship', __name__)
 
@@ -242,7 +241,6 @@ def search_mentors():
 
     return jsonify(mentor_list), 200
 
-# メンター申請リクエストAPI
 @mentorship_bp.route('/mentorship/request', methods=['POST'])
 @jwt_required()
 def send_mentorship_request():
@@ -251,6 +249,7 @@ def send_mentorship_request():
     mentor_id = data.get("mentor_id")
     message = data.get("message", "")
 
+    # すでに申請中かチェック
     existing = MentorshipRequest.query.filter_by(
         mentee_id=current_user_id,
         mentor_id=mentor_id,
@@ -259,6 +258,7 @@ def send_mentorship_request():
     if existing:
         return jsonify({"error": "すでに申請中です"}), 400
 
+    # メンター申請作成
     new_request = MentorshipRequest(
         mentee_id=current_user_id,
         mentor_id=mentor_id,
@@ -266,8 +266,19 @@ def send_mentorship_request():
     )
     db.session.add(new_request)
     db.session.commit()
-    return jsonify({"message": "申請を送信しました"}), 201
 
+    # ✅ メンターに通知送信
+    create_notification(
+        user_id=mentor_id,
+        title="新しいメンター申請があります",
+        message="新しくメンティーからの申請が届きました。",
+        detail=message or "メンターページから確認してください。",
+        type="mentorship_request",
+        priority="normal",
+        actionurl=f"/mentorships/requests/{new_request.id}"  # ✅ 確認ページに合わせて変更OK
+    )
+
+    return jsonify({"message": "申請を送信しました"}), 201
 @mentorship_bp.route('/mentorship/requests/received', methods=['GET'])
 @jwt_required()
 def get_received_mentorship_requests():
@@ -314,7 +325,6 @@ def get_received_mentorship_requests():
 
     return jsonify(result), 200
 
-# 承認・メンター登録API
 @mentorship_bp.route('/mentorship/request/<request_id>/approve', methods=['POST'])
 @jwt_required()
 def approve_mentorship(request_id):
@@ -335,8 +345,18 @@ def approve_mentorship(request_id):
     db.session.add(new_mentorship)
     db.session.commit()
 
-    return jsonify({"message": "申請を承認しました"}), 200
+    # ✅ 通知作成（メンティー向け）
+    create_notification(
+        user_id=req.mentee_id,
+        title="メンター申請が承認されました",
+        message="あなたのメンター申請が承認され、メンターとのチャットが開始できます。",
+        detail="メンターページからチャットを開始してください。",
+        type="mentorship_approved",
+        priority="normal",
+        actionurl=f"/chats/{new_mentorship.mentor_id}"  # ✅ フロント遷移先に合わせて調整
+    )
 
+    return jsonify({"message": "申請を承認しました"}), 200
 # 拒否API：/mentorship/request/<request_id>/reject
 @mentorship_bp.route('/mentorship/request/<request_id>/reject', methods=['POST'])
 @jwt_required()
