@@ -94,7 +94,7 @@ def create_submission():
 @submission_api.route("/submissions", methods=["GET"])
 @jwt_required()
 def get_submissions():
-    user_id = request.args.get("user_id")
+    user_id = get_jwt_identity()
 
     query = Submission.query
     if user_id:
