@@ -189,6 +189,7 @@ class Chats(db.Model):
     chat_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
     message = db.Column(db.String(255), nullable=True)
     image = db.Column(db.String(255), nullable=True)
+    type = db.Column(db.String(255), nullable=True)
     send_user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=False)
     receiver_user_id = db.Column(db.String(36), db.ForeignKey('user.user_id'), nullable=True)
     group_id = db.Column(db.String(36), db.ForeignKey('group_chat.group_id'), nullable=True)

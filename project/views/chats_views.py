@@ -50,6 +50,7 @@ def handle_send_message(data):
             send_user_id=data['send_user_id'],
             image = filename,
             group_id=data['group_id'],  # グループIDを設定
+            type = data['type'],
             chat_at=datetime.utcnow()
         )
         
@@ -75,6 +76,7 @@ def handle_send_message(data):
             send_user_id=data['send_user_id'],
             image = filename,
             receiver_user_id=data['receiver_user_id'],
+            type = data['type'],
             chat_at=datetime.utcnow()
         )
     
@@ -94,6 +96,7 @@ def handle_send_message(data):
         'chat_id': new_message.chat_id,
         'message': new_message.message,
         'image': new_message.image,
+        'type': new_message.type,
         'sender': new_message.sender.first_name if new_message.sender else 'Unknown',
         'group': new_message.group.group_name if new_message.group else None,  # リレーションを使用
         'chat_at': new_message.chat_at.strftime('%Y-%m-%d %H:%M:%S')
@@ -136,6 +139,7 @@ def get_chat_history():
         'chat_id': chat.chat_id,
         'message': chat.message,
         'image': chat.image,
+        'type': chat.type,
         'sender': chat.sender.first_name if chat.sender else 'Unknown',
         'receiver': chat.receiver.first_name if chat.receiver else 'Unknown',
         'chat_at': chat.chat_at.strftime('%Y-%m-%d %H:%M:%S')
@@ -168,6 +172,7 @@ def chat_send_group():
                 'message': chat.message,
                 'timestamp': chat.chat_at.strftime('%Y-%m-%d %H:%M:%S'),
                 'send_user_id': chat.send_user_id,
+                'type': chat.type,
                 'group_id': chat.group_id,  # グループIDを含める
                 'sender_name': user.first_name,  # 送信者の名前
                 'profile_image': user.profile_image  # 送信者のプロフィール画像
