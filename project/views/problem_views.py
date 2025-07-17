@@ -12,6 +12,7 @@ import os
 
 problem_bp = Blueprint('problem', __name__)
 
+
 @problem_bp.route('/problems', methods=['GET'])
 @jwt_required()
 def get_user_specific_problems():
@@ -19,23 +20,29 @@ def get_user_specific_problems():
 
     # ユーザーのカテゴリとランクを取得
     user_categories = User_category.query.filter_by(user_id=user_id).all()
-    user_ranks = User_rank.query.filter_by(user_id=user_id).all()
+    # user_ranks = User_rank.query.filter_by(user_id=user_id).all() # これは使わないか、特定用途に限定する
 
     category_ids = [uc.category_id for uc in user_categories]
-    rank_ids = [ur.rank_id for ur in user_ranks]
+    mentee_rank = User_rank.query.filter_by(rank_code="student").first() # または rank_name="Beginner", "初級" など
+
+    if not mentee_rank:
+        # メンティー用ランクが見つからない場合のエラーハンドリング
+        return jsonify({"msg": "Mentee rank not found in database."}), 404
+
+    mentee_rank_id = mentee_rank.rank_id
 
     problems = []
 
     if category_ids:
-        # ✅ カテゴリーがある場合：category_id × rank_id 両方一致
+        # カテゴリーがある場合：category_id × メンティー用rank_id で一致
         problems = Problem.query.filter(
             Problem.category_id.in_(category_ids),
-            Problem.rank_id.in_(rank_ids)
+            Problem.rank_id == mentee_rank_id # メンティー用ランクIDに固定
         ).all()
     else:
-        # ❗カテゴリー未設定 → ランクだけ一致する問題をランダムに10件取得
+        # カテゴリー未設定 → メンティー用ランクの問題をランダムに10件取得
         problems = Problem.query.filter(
-            Problem.rank_id.in_(rank_ids)
+            Problem.rank_id == mentee_rank_id # メンティー用ランクIDに固定
         ).order_by(func.random()).limit(10).all()
 
     # category・rank をネストした形式で返す
@@ -58,7 +65,6 @@ def get_user_specific_problems():
         problem_list.append(problem_data)
 
     return jsonify(problem_list), 200
-
 @problem_bp.route('/problem/<problem_id>', methods=['GET'])
 def get_problem(problem_id):
     problem = Problem.query.get(problem_id)
